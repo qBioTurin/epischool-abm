@@ -24,12 +24,12 @@ In particular:
 There are two different contagion models:
 
 - Aerosol [3]: accumulation of quanta concentration in the main places and of quanta inhaled for each agent. Type of ventilation used: 3 ACH (Air Changes per Hour)<sup>1</sup>. 
-- Contact [4]: accumulation of the contact time among a susceptible agent and an infected one. We considered a contact area of 2.1 - 2.1 m<sup>2</sup>}.
+- Contact [4]: accumulation of the contact time among a susceptible agent and an infected one. We considered a contact area of 2.1 * 2.1 m<sup>2</sup>}.
 
 <sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considere room.
 
 ## HOW TO USE IT
-To run a configuration you need to create a configuration file (with .conf extension) specifying the values to assign for each (or for some) parameters (described below). In the ExampleOfConfigurationFile directory you can find some examples of configuration files. After that you can run the created configuration in this way:
+To run a configuration you need to create a configuration file (with .conf extension) specifying the values to assign for each (or for some) parameters (described below). In the *ExampleOfConfigurationFile* directory you can find some examples of configuration files. After that, you can run the configuration in this way:
 ```
 ./start.sh ConfigurationFileName NumberOfThreads
 ```
@@ -42,7 +42,7 @@ There are lots of parameters in this model. Here I describe the parameters that 
 
 - students-per-classroom: number of students for each classroom.
 - num-floors: number of school's floors.
-- num-classrooms-per-floor: number of classrooms for each floor. The total number of classrooms is equal to num-floors - num-classrooms-per-floor (minimum 1, maximum 12).
+- num-classrooms-per-floor: number of classrooms for each floor. The total number of classrooms is equal to num-floors * num-classrooms-per-floor (minimum 1, maximum 12).
 - init-infected: initial number of infected agents.
 - init-infected-type: the init-infected will be of this type (anyone, students, teachers, principals or janitors).
 - num-groups: number of groups in which the classrooms are divided (1 not staggered admissions, 2 staggered admissions).
@@ -146,10 +146,10 @@ Each run produce an output file and for each day we get the following informatio
 ## EXTERNAL INPUT
 The model needed some external input files inside a _Utils_ directory:
 
-- Seed.txt: this file contains the seed.
-- ClassroomsScheduling.txt: this file contains the teachers' scheduling on the five weekly days; each teacher has an associated identifier (it's important to not overlap the teachers between different classroom in the same hour). It's necessary to specify the scheduling for each interested classroom and for each day there must be six lessons.
-- StaggeredClassroomsScheduling.txt: this file contains the teachers' scheduling in the case of staggered admissions.
-- GymTeachers.txt: this file contains the identifier of the gym teachers.
+- *Seed.txt*: this file contains the seed.
+- *ClassroomsScheduling.txt*: this file contains the teachers' scheduling on the five weekly days; each teacher has an associated identifier (it's important to not overlap the teachers between different classroom in the same hour). It's necessary to specify the scheduling for each interested classroom and for each day there must be six lessons.
+- *StaggeredClassroomsScheduling.txt*: this file contains the teachers' scheduling in the case of staggered admissions.
+- *GymTeachers.txt*: this file contains the identifier of the gym teachers.
 
 ## EXTENDING THE MODEL
 - Fix the measure-temperature function
@@ -160,7 +160,7 @@ The model needed some external input files inside a _Utils_ directory:
 - Introduce some features such as:
 	- Possibility of reinfection
 
-## BIBLIOGRAPHY
+## REFERENCES
 [1] Daniele Baccega. _SchoolSEIRModel_. _2021_. URL: https://gitlab.com/danielebaccega/schoolseirmodel.
 
 [2] Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
@@ -173,7 +173,7 @@ The model needed some external input files inside a _Utils_ directory:
 
 ## COPYRIGHT AND LICENSE
 
-Copyright Daniele Baccega
+Copyright Daniele Baccega, Simone Pernice, Pietro Terna, Paolo Castagno, Marco Beccuti, Matteo Sereno
 
 ![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
 

@@ -4573,11 +4573,11 @@ HORIZONTAL
 
 @#$#@#$#@
 ## INTRODUCTION
-Many governments enforced physical distancing measures to control the spread of COVID-19 to avoid the collapse of fragile and overloaded health care systems. Following the physical distancing measures, the closures of schools seemed unavoidable to control and reduce the transmission of the pathogen, given the potentially high-risk settings of these environments. Nevertheless, leaving the closure of schools as an extreme and last resource is a top priority of governments, therefore different non-pharmaceutical interventions in the school settings were implemented to reduce the risk of transmission. Through a detailed Agent-Based Model simulation experiment [1, 4], we study the efficacy of active surveillance strategies in the school environment. Simulations settings employed in the experiments provide hypothetical although realistic scenarios which allow us to identify the most suitable control strategy according to the viral circulation period to avoid massive school closures. The significance of risk reduction through the policies assessed in this work is relevant for public health authorities and school administrators.
+Many governments enforced physical distancing measures to control the spread of COVID-19 to avoid the collapse of fragile and overloaded health care systems. Following the physical distancing measures, the closures of schools seemed unavoidable to control and reduce the transmission of the pathogen, given the potentially high-risk settings of these environments. Nevertheless, leaving the closure of schools as an extreme and last resource is a top priority of governments, therefore different non-pharmaceutical interventions in the school settings were implemented to reduce the risk of transmission. Through a detailed Agent-Based Model simulation experiment [1, 5], we study the efficacy of active surveillance strategies in the school environment. Simulations settings employed in the experiments provide hypothetical although realistic scenarios which allow us to identify the most suitable control strategy according to the viral circulation period to avoid massive school closures. The significance of risk reduction through the policies assessed in this work is relevant for public health authorities and school administrators.
 
 ## WHAT IS IT?
 
-This is an Agent-Based Model (ABM), developed in the multi-agent programmable modeling environment NetLogo version 6.2.0 (Wilensky 1999), to study the spread of COVID-19 infections within an explanatory scholastic environment, and to evaluate in such an environment the effectiveness of non-pharmaceutical interventions (NPIs), such as distancing requirements, screening testing, and environment ventilation.
+This is an Agent-Based Model (ABM), developed in the multi-agent programmable modeling environment NetLogo version 6.2.0 [2], to study the spread of COVID-19 infections within an explanatory scholastic environment, and to evaluate in such an environment the effectiveness of non-pharmaceutical interventions (NPIs), such as distancing requirements, screening testing, and environment ventilation.
 The model components are:
 
 * The environment including both physical spaces and social contact structure of the population;
@@ -4597,12 +4597,21 @@ In particular:
 
 There are two different contagion models:
 
-* Aerosol [2]: accumulation of quanta concentration in the main places and of quanta inhaled for each agent. Type of ventilation used: 3 ACH (Air Changes per Hour)<sup>1</sup>. 
-* Contact [3]: accumulation of the contact time among a susceptible agent and an infected one. We considered a contact area of 2.1 * 2.1 m<sup>2</sup>}.
+* Aerosol [3]: accumulation of quanta concentration in the main places and of quanta inhaled for each agent. Type of ventilation used: 3 ACH (Air Changes per Hour)<sup>1</sup>. 
+* Contact [4]: accumulation of the contact time among a susceptible agent and an infected one. We considered a contact area of 2.1 * 2.1 m<sup>2</sup>}.
 
 <sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considere room.
 
 ## HOW TO USE IT
+To run a configuration you need to create a configuration file (with .conf extension) specifying the values to assign for each (or for some) parameters (described below). In the *ExampleOfConfigurationFile* directory you can find some examples of configuration files. After that, you can run the configuration in this way:
+```
+./start.sh ConfigurationFileName NumberOfThreads
+```
+For example:
+```
+./start.sh ExampleOfConfigurationFile/Example1.conf 24
+```
+
 There are lots of parameters in this model. Here I describe the parameters that you can modify in the Interface Tab:
 
 * students-per-classroom: number of students for each classroom.
@@ -4711,9 +4720,10 @@ Each run produce an output file and for each day we get the following informatio
 ## EXTERNAL INPUT
 The model needed some external input files inside a _Utils_ directory:
 
-* Seed.txt: this file contains the seed.
-* ClassroomScheduling.txt: this file contains the teachers' scheduling on the five weekly days; each teacher has an associated identifier (it's important to not overlap the teachers between different classroom in the same hour). It's necessary to specify the scheduling for each interested classroom and for each day there must be six lessons.
-* GymTeachers.txt: this file contains the identifier of the gym teachers.
+* *Seed.txt*: this file contains the seed.
+* *ClassroomsScheduling.txt*: this file contains the teachers' scheduling on the five weekly days; each teacher has an associated identifier (it's important to not overlap the teachers between different classroom in the same hour). It's necessary to specify the scheduling for each interested classroom and for each day there must be six lessons.
+* *StaggeredClassroomsScheduling.txt*: this file contains the teachers' scheduling in the case of staggered admissions.
+* *GymTeachers.txt*: this file contains the identifier of the gym teachers.
 
 ## EXTENDING THE MODEL
 * Fix the measure-temperature function
@@ -4724,15 +4734,20 @@ The model needed some external input files inside a _Utils_ directory:
 * Introduce some features such as:
 	* Possibility of reinfection
 
-## BIBLIOGRAPHY
+## REFERENCES
 [1] Daniele Baccega. _SchoolSEIRModel_. _2021_. URL: https://gitlab.com/danielebaccega/schoolseirmodel.
-[2] Savvas Gkantonas et al. _airborne.cam: a risk calculator of SARSCoV-2 aerosol transmission under well-mixed ventilation conditions_. _2021_. URL: https://airborne.cam.
-[3] Nicolas Hoertel et al. _«A stochastic agent-based model of the SARS-CoV-2 epidemic in France»_. In: _Nature medicine 26.9 (2020)_, pp. 1417–1421.
-[4] PAPER JASS
+
+[2] Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+
+[3] Savvas Gkantonas et al. _airborne.cam: a risk calculator of SARSCoV-2 aerosol transmission under well-mixed ventilation conditions_. _2021_. URL: https://airborne.cam.
+
+[4] Nicolas Hoertel et al. _«A stochastic agent-based model of the SARS-CoV-2 epidemic in France»_. In: _Nature medicine 26.9 (2020)_, pp. 1417–1421.
+
+[5] PAPER JASS
 
 ## COPYRIGHT AND LICENSE
 
-Copyright Daniele Baccega
+Copyright Daniele Baccega, Simone Pernice, Pietro Terna, Paolo Castagno, Marco Beccuti, Matteo Sereno
 
 ![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
 
