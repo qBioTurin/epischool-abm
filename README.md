@@ -19,14 +19,14 @@ In particular:
 - Students can go to their classroom, to the students' bathroom on the same floor of their classroom, to the principal's office, to the gym, to the hallways, etc.
 - Teachers can go to the classrooms, to the teacher's room, to the teachers' bathroom on the ground floor, to the hallways, etc.
 - Principal can go to the principal's office, to the teachers' bathroom on the ground floor, to the hallways etc.
-- Janitors can go to the medical room, to the teachers' bathroom, to che hallways etc.
+- Janitors can go to the medical room, to the teachers' bathroom, to the hallways etc.
 
 There are two different contagion models:
 
 - Aerosol [3]: accumulation of quanta concentration in the main places and of quanta inhaled for each agent. Type of ventilation used: 3 ACH (Air Changes per Hour)<sup>1</sup>. 
 - Contact [4]: accumulation of the contact time among a susceptible agent and an infected one. We considered a contact area of 2.1 * 2.1 m<sup>2</sup>}.
 
-<sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considere room.
+<sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considered room.
 
 ## HOW TO USE IT
 To run a configuration you need to create a configuration file (with .conf extension) specifying the values to assign for each (or for some) parameters (described below). In the *ExampleOfConfigurationFile* directory you can find some examples of configuration files. After that, you can run the configuration in this way:
@@ -173,7 +173,7 @@ The model needed some external input files inside a _Utils_ directory:
 
 ## COPYRIGHT AND LICENSE
 
-Copyright Daniele Baccega, Simone Pernice, Pietro Terna, Paolo Castagno, Marco Beccuti, Matteo Sereno
+Copyright Daniele Baccega, Marco Beccuti, Paolo Castagno, Simone Pernice, Matteo Sereno, Pietro Terna
 
 ![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
 
