@@ -59,6 +59,18 @@ then
     rm $FNM
 fi
 
+SUPPORT_STR="<experiments>\n</experiments>"
+
+# Get the number of lines before the point where to add the experiments tag
+HLN=$(grep -n "NetLogo 6.1.1" $MOD | cut -f1 -d:)
+HLN=$((HLN + 3))
+
+# Get the number of lines following the experiments tag
+TLN=$(expr $(wc -l $MOD | cut -f1 -d' ') - $HLN)
+
+# Put all togheter and write it back to file
+echo -e "$(head -n $HLN $MOD)\n$SUPPORT_STR\n$(tail -n $TLN $MOD)" > $FNM
+
 # Get the number of lines before the point where to add the configuration
 HLN=$(grep -n "<experiments>" $MOD | cut -f1 -d:)
 

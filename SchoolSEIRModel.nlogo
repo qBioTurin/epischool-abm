@@ -3727,7 +3727,29 @@ end
 
 ;Stop condition
 to-report stop-condition
-  report day = days-of-simulation and hour = 13 and minute = 40 and count turtles with [ not hidden? and cumulative-quanta-inhaled != 0 ] = 0 or day > days-of-simulation
+  let final-hour 13
+  let final-minute 40
+
+  if lesson-duration-in-minutes = 60
+    [
+      set final-hour 14
+      set final-minute 40
+    ]
+
+  if staggered-admissions?
+    [
+      ifelse lesson-duration-in-minutes = 60
+      [
+        set final-hour 15
+        set final-minute 40
+      ]
+      [
+        set final-hour 14
+        set final-minute 30
+      ]
+    ]
+
+  report day = days-of-simulation and hour = final-hour and minute = final-minute and count turtles with [ not hidden? and cumulative-quanta-inhaled != 0 ] = 0 or day > days-of-simulation
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -3903,7 +3925,7 @@ SWITCH
 832
 staggered-admissions?
 staggered-admissions?
-1
+0
 1
 -1000
 
@@ -3931,7 +3953,7 @@ num-groups
 num-groups
 1
 2
-1.0
+2.0
 1
 1
 NIL
@@ -4747,7 +4769,7 @@ The model needed some external input files inside a _Utils_ directory:
 
 ## COPYRIGHT AND LICENSE
 
-Copyright Daniele Baccega, Simone Pernice, Pietro Terna, Paolo Castagno, Marco Beccuti, Matteo Sereno
+Copyright Daniele Baccega, Marco Beccuti, Paolo Castagno, Simone Pernice, Matteo Sereno, Pietro Terna
 
 ![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
 
