@@ -62,8 +62,8 @@ fi
 SUPPORT_STR="<experiments>\n</experiments>"
 
 # Get the number of lines before the point where to add the experiments tag
-HLN=$(grep -n "NetLogo 6.1.1" $MOD | cut -f1 -d:)
-HLN=$((HLN + 3))
+HLN=$(grep -n "link direction" $MOD | cut -f1 -d:)
+HLN=$((HLN - 8))
 
 # Get the number of lines following the experiments tag
 TLN=$(expr $(wc -l $MOD | cut -f1 -d' ') - $HLN)
