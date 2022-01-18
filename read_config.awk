@@ -79,7 +79,6 @@ BEGIN{
 	EXP = EXP STR"\n"
 }
 END{
-# 	EXP = "<experiments>\n" EXP "\t</experiment>\n</experiments>"
 	EXP = EXP "\t</experiment>"
 	print EXP
 }

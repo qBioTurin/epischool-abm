@@ -40,7 +40,7 @@ then
 fi
 
 # Generate the description of the experiment
-STR=$(awk -f read_config.awk $CONF)
+STR=$(gawk -f read_config.awk $CONF)
 
 # Check wether to use the provided file name or to generate it
 if [ -z ${FNM+x} ]
@@ -70,6 +70,7 @@ TLN=$(expr $(wc -l $MOD | cut -f1 -d' ') - $HLN)
 
 # Put all togheter and write it back to file
 echo -e "$(head -n $HLN $MOD)\n$SUPPORT_STR\n$(tail -n $TLN $MOD)" > $FNM
+
 
 # Get the number of lines before the point where to add the configuration
 HLN=$(grep -n "<experiments>" $FNM | cut -f1 -d:)
