@@ -1,5 +1,5 @@
 #!/bin/bash
-CFG=($(~/SchoolSEIRModel/sim_setup.sh -m SchoolSEIRModel.nlogo -c $1));
+CFG=($(./sim_setup.sh -m SchoolSEIRModel.nlogo -c $1));
 echo -e "executing...\n\tmkdir Results${CFG[1]}"
 mkdir Results${CFG[1]}
 # mkdir ${CFG[1]}

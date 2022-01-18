@@ -72,13 +72,13 @@ TLN=$(expr $(wc -l $MOD | cut -f1 -d' ') - $HLN)
 echo -e "$(head -n $HLN $MOD)\n$SUPPORT_STR\n$(tail -n $TLN $MOD)" > $FNM
 
 # Get the number of lines before the point where to add the configuration
-HLN=$(grep -n "<experiments>" $MOD | cut -f1 -d:)
+HLN=$(grep -n "<experiments>" $FNM | cut -f1 -d:)
 
 # Get the number of lines following the configuration
-TLN=$(expr $(wc -l $MOD | cut -f1 -d' ') - $HLN)
+TLN=$(expr $(wc -l $FNM | cut -f1 -d' ') - $HLN)
 
 # Put all togheter and write it back to file
-echo -e "$(head -n $HLN $MOD)\n$STR\n$(tail -n $TLN $MOD)" > $FNM
+echo -e "$(head -n $HLN $FNM)\n$STR\n$(tail -n $TLN $FNM)" > $FNM
 
 # Return the file name of the NetLogo model
 echo $FNM $EXP
