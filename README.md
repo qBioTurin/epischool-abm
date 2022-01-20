@@ -28,7 +28,7 @@ There are two different contagion models:
 <sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considere room.
 
 ## HOW TO USE IT (on Linux)
-At first, you need to install **NetLogo 6.1.1**.
+At first, you need to download [**NetLogo 6.1.1**](https://ccl.northwestern.edu/netlogo/6.1.1/).
 
 After that, to run a configuration you need to create a configuration file (with .conf extension) specifying the values to assign for each (or for some) parameters (described below). In the _ExampleOfConfigurationFile_ directory you can find some examples of configuration files. After that, you can run the configuration in this way (**it's necessary to specify the correct path to netlogo-headless.sh into the start.sh script, for example \~/NetLogo6.1.1/netlogo-headless.sh**):
 ```
