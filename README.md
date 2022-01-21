@@ -62,6 +62,9 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _prob-outside-contagion-young_: probability that an agent that belongs to the _young_ category gets the infection outside the school.
 - _prob-outside-contagion-regular_: probability that an agent that belongs to the _regular_ category gets the infection outside the school.
 - _prob-outside-contagion-old_: probability that an agent that belongs to the _old_ category gets the infection outside the school.
+- _prob-symptomatic-young_: probability to show symptoms when a _young_ agent becomes infected.
+- _prob-symptomatic-regular_: probability to show symptoms when a _regular_ agent becomes infected.
+- _prob-symptomatic-old_: probability to show symptoms when a _old_ agent becomes infected.
 - _prob-external-screening-1_: probability to swab a student outside the school because this student follows activities that involve screening campaings.
 - _prob-external-screening-2_: probability to swab an infected students outside the school.
 - _lesson-duration-in-minutes_: duration of a single lesson in minutes.
@@ -166,7 +169,7 @@ The model needed some external input files inside a _Utils_ directory:
 	- Possibility of reinfection
 
 ## REFERENCES
-[1] Daniele Baccega. _SchoolSEIRModel_. _2021_. URL: https://gitlab.com/danielebaccega/schoolseirmodel.
+[1] Daniele Baccega. _SchoolSEIRModel_. _2021_. URL: https://github.com/daniele-baccega/schoolseirmodel.
 
 [2] Wilensky, U. _(1999)_. _NetLogo._ http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
