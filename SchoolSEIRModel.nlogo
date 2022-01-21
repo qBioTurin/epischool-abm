@@ -80,6 +80,8 @@ globals [
   inhalation-rate-teachers inhalation-rate-teachers-in-classroom
   inhalation-rate-principals inhalation-rate-janitors
 
+  variant-factor
+
   num-active-agents
   mean-quanta-inhaled
   mean-quanta-inhaled-in-classroom
@@ -134,12 +136,17 @@ globals [
   weekend?
 
   print-day?
+
+  susceptible-color exposed-color infected-color removed-color vaccinated-color
+
+  error?
 ]
 
 turtles-own [
   susceptible? exposed? infected? removed?
   quarantined? vaccinated? screening-adhesion?
   quarantined-external-1? quarantined-external-2?
+  symptomatic?
 
   desk classroom floor-idx toilet
 
@@ -265,6 +272,14 @@ to setup-general-variables
 
   set weekend? false
   set print-day? false
+
+  set susceptible-color lime - 3
+  set exposed-color blue
+  set infected-color red
+  set removed-color black
+  set vaccinated-color magenta - 1
+
+  set error? false
 end
 
 to setup-counters-variables
@@ -318,7 +333,7 @@ to setup-counters-variables
   set num-in-queue2 0
 
   set starting-hour 7
-  set starting-minute 35
+  set starting-minute 25
   set starting-second 0
 
   set day 0
@@ -371,6 +386,20 @@ to setup-contagion-variables
     ]
 
   set contamination-risk 0.024 * (1 - contamination-risk-decreased-with-mask * fraction-of-population-wearing-mask)
+
+  set variant-factor 1
+
+  if virus-variant = "Alfa"
+    [ set variant-factor 1.5 ]
+
+  if virus-variant = "Beta"
+    [ set variant-factor 1.5 ]
+
+  if virus-variant = "Delta"
+    [ set variant-factor 2 ]
+
+  if virus-variant = "Omicron"
+    [ set variant-factor 2.5 ]
 
   set one-patch-in-meters 0.7
 
@@ -432,7 +461,7 @@ to setup-contagion-variables
 
   set decay-rate-of-the-virus 0.636 / 3600
   set gravitational-settling-rate 0.39 / 3600
-  set total-first-order-loss-rate ventilation + decay-rate-of-the-virus  + gravitational-settling-rate
+  set total-first-order-loss-rate ventilation + decay-rate-of-the-virus + gravitational-settling-rate
 end
 
 to setup-temperature-measurement-variables
@@ -442,7 +471,7 @@ to setup-temperature-measurement-variables
 
   if temperature-measurement = "by hand"
     [
-      set temperature-measurement-mean-time-in-seconds 10      ;in seconds (later I will turn it into ticks)
+      set temperature-measurement-mean-time-in-seconds 5       ;in seconds (later I will turn it into ticks)
       set temperature-measurement-std-in-seconds 5             ;in seconds (later I will turn it into ticks)
       set num-school-janitors 2
       set rooms-aerosol lput "MR" rooms-aerosol
@@ -450,7 +479,7 @@ to setup-temperature-measurement-variables
 
   if temperature-measurement = "termoscanner"
     [
-      set temperature-measurement-mean-time-in-seconds 20      ;in seconds (later I will turn it into ticks)
+      set temperature-measurement-mean-time-in-seconds 10      ;in seconds (later I will turn it into ticks)
       set temperature-measurement-std-in-seconds 10            ;in seconds (later I will turn it into ticks)
       set num-school-janitors 2
       set rooms-aerosol lput "MR" rooms-aerosol
@@ -494,7 +523,7 @@ to setup-time-variables
   set lesson-duration-in-ticks lesson-duration-in-minutes * 60 / tick-duration-in-seconds    ;50 or 60 minutes in ticks
   set interval-duration-in-ticks 15 * 60 / tick-duration-in-seconds                          ;15 minutes in ticks
 
-  set offset-between-entrance-and-start-lessons-in-ticks 35 * 60 / tick-duration-in-seconds  ;35 minutes in ticks
+  set offset-between-entrance-and-start-lessons-in-ticks 45 * 60 / tick-duration-in-seconds  ;45 minutes in ticks
 
   set supply-teachers []
   set supply-janitors []
@@ -1242,7 +1271,7 @@ to setup-janitors
 end
 
 to setup-common-attributes
-  set color lime - 3
+  set color susceptible-color
 
   let next-classroom classroom
 
@@ -1270,7 +1299,10 @@ to setup-common-attributes
   set infected? false
   set removed? false
   set quarantined? false
+  set quarantined-external-1? false
+  set quarantined-external-2? false
   set vaccinated? false
+  set symptomatic? false
   set screening-adhesion? false
 
   set screening-group 0
@@ -1320,12 +1352,13 @@ to setup-vaccinated-agents
                           ]
                           [
                             set susceptible? false
+                            set removed? true
                             set num-vaccinated-removed num-vaccinated-removed + 1
                           ]
 
                         set vaccinated? true
                         set num-susceptible num-susceptible - 1
-                        set color magenta - 1
+                        set color vaccinated-color
                       ]
         ]
     ]
@@ -1341,12 +1374,13 @@ to setup-vaccinated-agents
             ]
             [
               set susceptible? false
+              set removed? true
               set num-vaccinated-removed num-vaccinated-removed + 1
             ]
 
           set vaccinated? true
           set num-susceptible num-susceptible - 1
-          set color magenta - 1
+          set color vaccinated-color
         ]
     ]
 
@@ -1361,12 +1395,13 @@ to setup-vaccinated-agents
             ]
             [
               set susceptible? false
+              set removed? true
               set num-vaccinated-removed num-vaccinated-removed + 1
             ]
 
           set vaccinated? true
           set num-susceptible num-susceptible - 1
-          set color magenta - 1
+          set color vaccinated-color
         ]
     ]
 
@@ -1381,12 +1416,13 @@ to setup-vaccinated-agents
             ]
             [
               set susceptible? false
+              set removed? true
               set num-vaccinated-removed num-vaccinated-removed + 1
             ]
 
           set vaccinated? true
           set num-susceptible num-susceptible - 1
-          set color magenta - 1
+          set color vaccinated-color
         ]
     ]
 end
@@ -1401,7 +1437,7 @@ to setup-infected
       if init-infected > num-students
         [
           user-message "There aren't enough student. Please, select another type of initial infected agents."
-          stop
+          set error? true
         ]
     ]
 
@@ -1412,7 +1448,7 @@ to setup-infected
       if init-infected > count initial-infected-breed
         [
           user-message "There aren't enough teachers. Please, select another type of initial infected agents."
-          stop
+          set error? true
         ]
     ]
 
@@ -1423,7 +1459,7 @@ to setup-infected
       if init-infected > 1
         [
           user-message "There aren't enough principals. Please, select another type of initial infected agents."
-          stop
+          set error? true
         ]
     ]
 
@@ -1433,20 +1469,21 @@ to setup-infected
         [ set initial-infected-breed janitors ]
         [
           user-message "There are no janitors. Please, select another type of initial infected agents."
+          set error? true
           stop
         ]
 
       if init-infected > num-school-janitors
         [
           user-message "There aren't enough janitors. Please, select another type of initial infected agents."
-          stop
+          set error? true
         ]
     ]
 
   if count initial-infected-breed with [ not quarantined? and susceptible? ] != 0
     [
       ask n-of init-infected initial-infected-breed with [ not quarantined? and susceptible? ]
-        [ get-infected true ]
+        [ get-the-infection true ]
     ]
 end
 
@@ -1456,7 +1493,8 @@ end
 to go
   end-of-day-computation
 
-  if stop-simulation?
+  if error? or
+     stop-simulation?
     [ stop ]
 
   if next-group-activate < num-groups
@@ -1466,10 +1504,9 @@ to go
 
   move
 
-  ;Uncomment if you want to measure the temperature at the entrance (meaningful only with a tick equal to 4, 8 or 12 seconds)
-  ;It's necessary to introduce a mechanism for symptoms detection!
-  ;if temperature-measurement != "no-measurement"
-  ;  [ measure-temperature ]
+  ;Uncomment if you want to measure the temperature at the entrance (meaningful only with a tick equal to 4 seconds)
+  if temperature-measurement != "no-measurement"
+    [ measure-temperature ]
 
   if ticks >= start-lessons-time-in-ticks
     [ update-lessons ]
@@ -2033,54 +2070,54 @@ to move
     ]
 end
 
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
-;to measure-temperature
-;  ask turtles with [ queue-position = 0 ]
-;    [
-;      if [ length targets ] of one-of janitors = 1 and measure-temperature-patch?
-;        [
-;          ifelse temperature-time-in-seconds > 0
-;            [ set temperature-time-in-seconds temperature-time-in-seconds - 1 ]
-;            [
-;              set temperature-already-measured? true
-;              set queue-position -1
-;              move-queue
-;              setup-after-measurement-targets
-;
-;              if symptomatic? and
-;                 mild-symptom?
-;                [
-;                  set quarantined? true
-;                  set num-infected num-infected - 1
-;                  set num-infected-in-quarantine num-infected-in-quarantine + 1
-;                  setup-after-measurement-targets
-;
-;                  if breed = teachers
-;                    [
-;                      ifelse supply-teachers != []
-;                        [
-;                          copy-teacher (first supply-teachers) who
-;                          set supply-teachers but-first supply-teachers
-;                        ]
-;                        [ create-supply-teacher ]
-;                    ]
-;
-;                  if breed = janitors
-;                    [
-;                      ifelse supply-janitors != []
-;                        [
-;                          copy-janitors (first supply-janitors) who
-;                          set supply-janitors but-first supply-janitors
-;                        ]
-;                        [ create-supply-janitors ]
-;                    ]
-;                ]
-;
-;              set queue 0
-;            ]
-;        ]
-;    ]
-;end
+;THIS FUNCTION NEED A REVIEW!
+to measure-temperature
+  ask turtles with [ queue-position = 0 ]
+    [
+      if [ length targets ] of one-of janitors = 1 and measure-temperature-patch?
+        [
+          ifelse temperature-time-in-ticks > 0
+            [ set temperature-time-in-ticks temperature-time-in-ticks - 1 ]
+            [
+              set temperature-already-measured? true
+              set queue-position -1
+              move-queue
+              setup-after-measurement-targets
+
+              if symptomatic?
+                [
+                  set quarantined? true
+                  ;If we put a student in quarantine, we need to check the quarantine policy
+                  set num-infected num-infected - 1
+                  set num-infected-in-quarantine num-infected-in-quarantine + 1
+                  setup-after-measurement-targets
+
+                  if breed = teachers
+                    [
+                      ifelse supply-teachers != []
+                        [
+                          copy-teacher (first supply-teachers) who
+                          set supply-teachers but-first supply-teachers
+                        ]
+                        [ create-supply-teacher ]
+                    ]
+
+                  if breed = janitors
+                    [
+                      ifelse supply-janitors != []
+                        [
+                          copy-janitors (first supply-janitors) who
+                          set supply-janitors but-first supply-janitors
+                        ]
+                        [ create-supply-janitors ]
+                    ]
+                ]
+
+              set queue 0
+            ]
+        ]
+    ]
+end
 
 to update-lessons
   let g 0
@@ -2418,19 +2455,19 @@ to accumulate-aerosol [room]
         [ set infectious-vaccinated-factor-janitors infectious-vaccinated-factor ]
     ]
 
-  let base-n-r-students (activity-type-students * ngen-base) / (10 ^ vl)
-  let base-n-r-students-in-gym (activity-type-students-in-gym * ngen-base) / (10 ^ vl)
-  let base-n-r-teachers (activity-type-teachers * ngen-base) / (10 ^ vl)
-  let base-n-r-teachers-in-classroom (activity-type-teachers-in-classroom * ngen-base) / (10 ^ vl)
-  let base-n-r-principals (activity-type-principals * ngen-base) / (10 ^ vl)
-  let base-n-r-janitors (activity-type-janitors * ngen-base) / (10 ^ vl)
+  let base-n-r-students ((activity-type-students * ngen-base) / (10 ^ vl)) * variant-factor
+  let base-n-r-students-in-gym ((activity-type-students-in-gym * ngen-base) / (10 ^ vl)) * variant-factor
+  let base-n-r-teachers ((activity-type-teachers * ngen-base) / (10 ^ vl)) * variant-factor
+  let base-n-r-teachers-in-classroom ((activity-type-teachers-in-classroom * ngen-base) / (10 ^ vl)) * variant-factor
+  let base-n-r-principals ((activity-type-principals * ngen-base) / (10 ^ vl)) * variant-factor
+  let base-n-r-janitors ((activity-type-janitors * ngen-base) / (10 ^ vl)) * variant-factor
 
-  let base-n-r-students-vaccinated (activity-type-students * ngen-base * infectious-vaccinated-factor-students) / (10 ^ vl)
-  let base-n-r-students-in-gym-vaccinated (activity-type-students-in-gym * ngen-base * infectious-vaccinated-factor-students) / (10 ^ vl)
-  let base-n-r-teachers-vaccinated (activity-type-teachers * ngen-base * infectious-vaccinated-factor-teachers) / (10 ^ vl)
-  let base-n-r-teachers-in-classroom-vaccinated (activity-type-teachers-in-classroom * ngen-base * infectious-vaccinated-factor-teachers) / (10 ^ vl)
-  let base-n-r-principals-vaccinated (activity-type-principals * ngen-base * infectious-vaccinated-factor-principals) / (10 ^ vl)
-  let base-n-r-janitors-vaccinated (activity-type-janitors * ngen-base * infectious-vaccinated-factor-janitors) / (10 ^ vl)
+  let base-n-r-students-vaccinated ((activity-type-students * ngen-base * infectious-vaccinated-factor-students) / (10 ^ vl)) * variant-factor
+  let base-n-r-students-in-gym-vaccinated ((activity-type-students-in-gym * ngen-base * infectious-vaccinated-factor-students) / (10 ^ vl)) * variant-factor
+  let base-n-r-teachers-vaccinated ((activity-type-teachers * ngen-base * infectious-vaccinated-factor-teachers) / (10 ^ vl)) * variant-factor
+  let base-n-r-teachers-in-classroom-vaccinated ((activity-type-teachers-in-classroom * ngen-base * infectious-vaccinated-factor-teachers) / (10 ^ vl)) * variant-factor
+  let base-n-r-principals-vaccinated ((activity-type-principals * ngen-base * infectious-vaccinated-factor-principals) / (10 ^ vl)) * variant-factor
+  let base-n-r-janitors-vaccinated ((activity-type-janitors * ngen-base * infectious-vaccinated-factor-janitors) / (10 ^ vl)) * variant-factor
 
   let n-r-students (10 ^ vl) * base-n-r-students * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
   let n-r-students-in-gym (10 ^ vl) * base-n-r-students-in-gym * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
@@ -2571,7 +2608,7 @@ to infect-aerosol
       let pi-agent 1 - exp(- cumulative-quanta-inhaled / risk-const)
 
       if random 1000000 < pi-agent * 1000000
-        [ get-infected false ]
+        [ get-the-infection false ]
 
       set cumulative-quanta-inhaled 0
     ]
@@ -2616,7 +2653,6 @@ to accumulate-contact-with-infected
       [
         let contact-value matrix:get contact-time-with-infected-matrix-in-ticks who who-infected
 
-        ;Different cases: not vaccinated-not vaccinated, not vaccinated-vaccinated (or vaccinated-not vaccinated), vaccinated-vaccinated
         ifelse [vaccinated?] of myself or
                vaccinated?
           [ matrix:set contact-time-with-infected-matrix-in-ticks who who-infected ((contact-value + 1) * infectious-vaccinated-factor) ]
@@ -2628,12 +2664,12 @@ end
 to infect-with-contact
   ask turtles with [ hidden? and sum matrix:get-row contact-time-with-infected-matrix-in-ticks who != 0 and susceptible? ]
     [
-      let contact-time-in-min ((sum matrix:get-row contact-time-with-infected-matrix-in-ticks who) * tick-duration-in-seconds) / 60
+      let contact-time-in-min (((sum matrix:get-row contact-time-with-infected-matrix-in-ticks who) * tick-duration-in-seconds) / 60) * variant-factor
 
       let pi-agent contamination-risk * (contact-time-in-min / contact-space-volume)
 
       if random 1000 < pi-agent * 1000
-        [ get-infected false ]
+        [ get-the-infection false ]
 
       matrix:set-row contact-time-with-infected-matrix-in-ticks who (n-values (num-agents * 2) [0])
     ]
@@ -2816,7 +2852,7 @@ to update-put-in-quarantine-variables
     ]
 end
 
-to get-infected [init-infected?]
+to get-the-infection [init-infected?]
   ifelse quarantined?
     [
       ifelse vaccinated?
@@ -2854,8 +2890,10 @@ to get-infected [init-infected?]
       set susceptible? false
       set infected? true
 
+      show-symptoms
+
       if not vaccinated?
-        [ set color red ]
+        [ set color infected-color ]
     ]
     [
       ifelse quarantined?
@@ -2891,7 +2929,7 @@ to get-infected [init-infected?]
       set exposed? true
 
       if not vaccinated?
-        [ set color blue ]
+        [ set color exposed-color ]
     ]
 
   set remain-infected-days ceiling random-exponential mean-infection-duration-in-days
@@ -2907,8 +2945,10 @@ to update-infected
           set exposed? false
           set infected? true
 
+          show-symptoms
+
           if not vaccinated?
-            [ set color red ]
+            [ set color infected-color ]
 
           ifelse quarantined?
             [
@@ -2963,10 +3003,23 @@ to update-infected
             ]
         ]
     ]
-    [ get-removed ]
+    [ become-removed ]
 end
 
-to get-removed
+to show-symptoms
+  let probability-to-show-symptoms prob-symptomatic-young
+
+  if age-group = "Regular"
+    [ set probability-to-show-symptoms prob-symptomatic-regular ]
+
+  if age-group = "Old"
+    [ set probability-to-show-symptoms prob-symptomatic-old ]
+
+  if random 100 < probability-to-show-symptoms * 100
+    [ set symptomatic? true ]
+end
+
+to become-removed
   set remain-infected-days remain-infected-days - 1
 
   if remain-infected-days = 0
@@ -3024,7 +3077,7 @@ to get-removed
         ]
 
       if not vaccinated?
-        [ set color black ]
+        [ set color removed-color ]
 
       set infected? false
       set removed? true
@@ -3177,7 +3230,7 @@ to outside-contagion
 
   if random 10000 < prob-outside-contagion * 10000
     [
-      get-infected false
+      get-the-infection false
       set num-infected-outside num-infected-outside + 1
     ]
 end
@@ -3688,157 +3741,213 @@ to update-school-clock
   set second (second + tick-duration-in-seconds) mod 60
 end
 
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
-;to create-supply-teacher
-;  hatch-teachers 1
-;    [
-;      set color lime - 3
-;
-;      set hidden? true
-;
-;      set num-teachers num-teachers + 1
-;      set num-agents num-agents + 1
-;      set num-susceptible num-susceptible + 1
-;      set remain-infected-days 0
-;
-;      ifelse random 100 < prob-old-teachers * 100
-;        [ set age-group "Old" ]
-;        [ set age-group "Regular" ]
-;
-;      set queue 0
-;      set queue-position -1
-;
-;      set temperature-already-measured? false
-;
-;      set susceptible? true
-;      set exposed? false
-;      set infected? false
-;      set quarantined? false
-;      set supply? true
-;
-;      let next-classroom first item (day mod 5) personal-classrooms-scheduling
-;
-;      let staggered-condition next-classroom != "-"
-;
-;      ifelse staggered-admissions? and
-;             staggered-condition
-;        [
-;          let init-patch no-patches
-;
-;          ask one-of patches with [ outdoor? and room-name = next-classroom ]
-;            [ set init-patch one-of patches in-radius 5 ]
-;          setxy [pxcor] of init-patch [pycor] of init-patch
-;        ]
-;        [ setxy ((random max-pxcor / 4.5 + max-pxcor / 4 * 3)) random max-pycor / 2 ]
-;    ]
-;end
-;
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
-;to create-supply-janitors
-;  hatch-janitors 1
-;    [
-;      set color lime - 3
-;
-;      set hidden? true
-;
-;      set num-school-janitors num-school-janitors + 1
-;      set num-agents num-agents + 1
-;      set num-susceptible num-susceptible + 1
-;      set remain-infected-days 0
-;
-;      ifelse random 100 < prob-old-teachers * 100
-;        [ set age-group "Old" ]
-;        [ set age-group "Regular" ]
-;
-;      set queue 0
-;      set queue-position -1
-;
-;      set susceptible? true
-;      set exposed? false
-;      set infected? false
-;      set quarantined? false
-;      set supply? true
-;
-;      setxy ((random max-pxcor / 4.5 + max-pxcor / 4 * 3)) random max-pycor / 2
-;    ]
-;end
-;
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
-;to copy-teacher [supply-teacher infected-teacher-who]
-;  let infected-teacher teachers with [who = infected-teacher-who]
-;  let supply-desk desk
-;  let supply-classroom classroom
-;  let supply-floor-idx floor-idx
-;  let supply-staggered-group staggered-group
-;  let supply-gym-hour? gym-hour?
-;  let supply-targets targets
-;  let supply-gym-teacher? gym-teacher?
-;  let supply-teacher-idx teacher-idx
-;  let supply-personal-classrooms-scheduling personal-classrooms-scheduling
-;  let supply-day-scheduling day-scheduling
-;
-;
-;  ask teachers with [ who = supply-teacher ]
-;    [
-;      set queue 0
-;      set queue-position -1
-;
-;      set temperature-already-measured? false
-;
-;      set susceptible? true
-;      set exposed? false
-;      set infected? false
-;      set quarantined? false
-;      set supply? true
-;
-;      set desk supply-desk
-;      set classroom supply-classroom
-;      set floor-idx supply-floor-idx
-;
-;      set staggered-group supply-staggered-group
-;
-;      set gym-hour? supply-gym-hour?
-;
-;      set targets supply-targets
-;
-;      set gym-teacher? supply-gym-teacher?
-;
-;      set teacher-idx supply-teacher-idx
-;
-;      set personal-classrooms-scheduling supply-personal-classrooms-scheduling
-;      set day-scheduling supply-day-scheduling
-;    ]
-;end
-;
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
-;to copy-janitors [supply-janitors infected-janitors-who]
-;  let infected-janitors janitors with [who = infected-janitors-who]
-;  let supply-desk desk
-;  let supply-classroom classroom
-;  let supply-floor-idx floor-idx
-;  let supply-staggered-group staggered-group
-;  let supply-targets targets
-;
-;  ask janitors with [ who = supply-janitors ]
-;    [
-;      set queue 0
-;      set queue-position -1
-;
-;      set susceptible? true
-;      set exposed? false
-;      set infected? false
-;      set quarantined? false
-;      set supply? true
-;
-;      set desk supply-desk
-;      set classroom supply-classroom
-;      set floor-idx supply-floor-idx
-;
-;      set staggered-group supply-staggered-group
-;
-;      set targets supply-targets
-;    ]
-;end
+to create-supply-teacher
+  hatch-teachers 1
+    [
+      set color susceptible-color
+
+      set hidden? true
+
+      set num-teachers num-teachers + 1
+      set num-agents num-agents + 1
+      set num-susceptible num-susceptible + 1
+      set remain-infected-days 0
+
+      ifelse random 100 < prob-old-teachers * 100
+        [ set age-group "Old" ]
+        [ set age-group "Regular" ]
+
+      set queue 0
+      set queue-position -1
+
+      set temperature-already-measured? false
+
+      set susceptible? true
+      set exposed? false
+      set infected? false
+      set quarantined? false
+      set quarantined-external-1? false
+      set quarantined-external-2? false
+      set symptomatic? false
+      set supply? true
+
+      supply-vaccinated
+
+      let next-classroom first item (day mod 5) personal-classrooms-scheduling
+
+      let staggered-condition next-classroom != "-"
+
+      ifelse staggered-admissions? and
+             staggered-condition
+        [
+          let init-patch no-patches
+
+          ask one-of patches with [ outdoor? and room-name = next-classroom ]
+            [ set init-patch one-of patches in-radius 5 ]
+          setxy [pxcor] of init-patch [pycor] of init-patch
+        ]
+        [ setxy ((random max-pxcor / 4.5 + max-pxcor / 4 * 3)) random max-pycor / 2 ]
+    ]
+end
+
+to create-supply-janitors
+  hatch-janitors 1
+    [
+      set color susceptible-color
+
+      set hidden? true
+
+      set num-school-janitors num-school-janitors + 1
+      set num-agents num-agents + 1
+      set num-susceptible num-susceptible + 1
+      set remain-infected-days 0
+
+      ifelse random 100 < prob-old-teachers * 100
+        [ set age-group "Old" ]
+        [ set age-group "Regular" ]
+
+      set queue 0
+      set queue-position -1
+
+      set susceptible? true
+      set exposed? false
+      set infected? false
+      set quarantined? false
+      set quarantined-external-1? false
+      set quarantined-external-2? false
+      set symptomatic? false
+      set supply? true
+
+      supply-vaccinated
+
+      setxy ((random max-pxcor / 4.5 + max-pxcor / 4 * 3)) random max-pycor / 2
+    ]
+end
+
+
+to supply-vaccinated
+  if vaccinated-teachers? and
+     breed = teachers
+    [
+      if random 100 < fraction-of-vaccinated-teachers * 100
+        [
+          ifelse vaccine-efficacy < 1
+            [
+              set susceptible? true
+              set num-vaccinated-susceptible num-vaccinated-susceptible + 1
+            ]
+            [
+              set susceptible? false
+              set removed? true
+              set num-vaccinated-removed num-vaccinated-removed + 1
+            ]
+
+          set vaccinated? true
+          set num-susceptible num-susceptible - 1
+          set color vaccinated-color
+        ]
+    ]
+
+  if vaccinated-janitors? and
+     breed = janitors
+    [
+      if random 100 < fraction-of-vaccinated-janitors * 100
+        [
+          ifelse vaccine-efficacy < 1
+            [
+              set susceptible? true
+              set num-vaccinated-susceptible num-vaccinated-susceptible + 1
+            ]
+            [
+              set susceptible? false
+              set removed? true
+              set num-vaccinated-removed num-vaccinated-removed + 1
+            ]
+
+          set vaccinated? true
+          set num-susceptible num-susceptible - 1
+          set color vaccinated-color
+        ]
+    ]
+end
+
+to copy-teacher [supply-teacher infected-teacher-who]
+  let infected-teacher teachers with [who = infected-teacher-who]
+  let supply-desk desk
+  let supply-classroom classroom
+  let supply-floor-idx floor-idx
+  let supply-staggered-group staggered-group
+  let supply-gym-hour? gym-hour?
+  let supply-targets targets
+  let supply-gym-teacher? gym-teacher?
+  let supply-teacher-idx teacher-idx
+  let supply-personal-classrooms-scheduling personal-classrooms-scheduling
+  let supply-day-scheduling day-scheduling
+
+  ask teachers with [ who = supply-teacher ]
+    [
+      set queue 0
+      set queue-position -1
+
+      set temperature-already-measured? false
+
+      set exposed? false
+      set infected? false
+      set quarantined? false
+      set quarantined-external-1? false
+      set quarantined-external-2? false
+      set symptomatic? false
+      set supply? true
+
+      set desk supply-desk
+      set classroom supply-classroom
+      set floor-idx supply-floor-idx
+
+      set staggered-group supply-staggered-group
+
+      set gym-hour? supply-gym-hour?
+
+      set targets supply-targets
+
+      set gym-teacher? supply-gym-teacher?
+
+      set teacher-idx supply-teacher-idx
+
+      set personal-classrooms-scheduling supply-personal-classrooms-scheduling
+      set day-scheduling supply-day-scheduling
+    ]
+end
+
+to copy-janitors [supply-janitor infected-janitors-who]
+  let infected-janitors janitors with [who = infected-janitors-who]
+  let supply-desk desk
+  let supply-classroom classroom
+  let supply-floor-idx floor-idx
+  let supply-staggered-group staggered-group
+  let supply-targets targets
+
+  ask janitors with [ who = supply-janitor ]
+    [
+      set queue 0
+      set queue-position -1
+
+      set exposed? false
+      set infected? false
+      set quarantined? false
+      set quarantined-external-1? false
+      set quarantined-external-2? false
+      set symptomatic? false
+      set supply? true
+
+      set desk supply-desk
+      set classroom supply-classroom
+      set floor-idx supply-floor-idx
+
+      set staggered-group supply-staggered-group
+
+      set targets supply-targets
+    ]
+end
 
 to reset-supply-teacher
   set classroom "-"
@@ -4134,10 +4243,10 @@ minute
 11
 
 TEXTBOX
-11
-55
-52
-97
+12
+58
+60
+101
 School clock
 11
 0.0
@@ -4178,7 +4287,7 @@ prob-outside-contagion-young
 prob-outside-contagion-young
 0
 0.01
-0.0015
+0.001
 0.0001
 1
 NIL
@@ -4220,10 +4329,10 @@ Setup probability
 1
 
 TEXTBOX
-855
-768
-890
-786
+860
+769
+895
+787
 Flags
 11
 0.0
@@ -4330,15 +4439,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-342
+362
 790
-545
+565
 823
 run#
 run#
 1
 1000
-1.0
+30.0
 1
 1
 NIL
@@ -4408,9 +4517,9 @@ NIL
 HORIZONTAL
 
 SLIDER
-342
+362
 755
-545
+565
 788
 days-of-simulation
 days-of-simulation
@@ -4429,14 +4538,14 @@ CHOOSER
 311
 init-infected-type
 init-infected-type
-"anyone" "students" "teachers" "principals" "staff"
+"anyone" "students" "teachers" "principals" "janitors"
 1
 
 CHOOSER
-342
-706
-545
-751
+362
+707
+565
+752
 lesson-duration-in-minutes
 lesson-duration-in-minutes
 50 60
@@ -4444,9 +4553,9 @@ lesson-duration-in-minutes
 
 TEXTBOX
 288
-722
-343
-741
+715
+370
+747
 Other parameters
 11
 0.0
@@ -4459,7 +4568,7 @@ SWITCH
 833
 outside-contagion?
 outside-contagion?
-1
+0
 1
 -1000
 
@@ -4545,7 +4654,7 @@ CHOOSER
 screening-policy
 screening-policy
 "no screening" "all every week" "1/4 of the class every week, in rotation" "1/4 of the class every week, in rotation, spread over two days of the week"
-3
+2
 
 TEXTBOX
 829
@@ -4565,7 +4674,7 @@ CHOOSER
 first-day-of-week
 first-day-of-week
 "monday" "tuesday" "wednesday" "thursday" "friday"
-2
+0
 
 CHOOSER
 1039
@@ -4575,13 +4684,13 @@ CHOOSER
 second-day-of-week
 second-day-of-week
 "monday" "tuesday" "wednesday" "thursday" "friday"
-4
+0
 
 SLIDER
 7
-852
-270
-885
+961
+271
+994
 prob-external-screening-1
 prob-external-screening-1
 0
@@ -4594,9 +4703,9 @@ HORIZONTAL
 
 SLIDER
 7
-887
-270
-920
+996
+271
+1029
 prob-external-screening-2
 prob-external-screening-2
 0
@@ -4608,10 +4717,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-342
-826
-545
-859
+362
+827
+565
+860
 tick-duration-in-seconds
 tick-duration-in-seconds
 4
@@ -4623,9 +4732,9 @@ NIL
 HORIZONTAL
 
 INPUTBOX
-552
-706
-755
+572
+707
+776
 789
 results-dir-name
 Results
@@ -4634,10 +4743,10 @@ Results
 String
 
 SLIDER
-342
-863
-545
-896
+362
+864
+565
+897
 vaccine-efficacy
 vaccine-efficacy
 0
@@ -4687,7 +4796,7 @@ fraction-of-vaccinated-students
 fraction-of-vaccinated-students
 0
 1
-1.0
+0.4
 0.01
 1
 NIL
@@ -4700,7 +4809,7 @@ SWITCH
 906
 vaccinated-students?
 vaccinated-students?
-1
+0
 1
 -1000
 
@@ -4744,6 +4853,71 @@ number-of-after-days-special-swab
 1
 NIL
 HORIZONTAL
+
+SLIDER
+7
+851
+271
+884
+prob-symptomatic-young
+prob-symptomatic-young
+0
+1
+0.0
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+8
+888
+271
+921
+prob-symptomatic-regular
+prob-symptomatic-regular
+0
+1
+0.0
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+8
+925
+272
+958
+prob-symptomatic-old
+prob-symptomatic-old
+0
+1
+0.0
+0.01
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+824
+880
+903
+903
+Vaccination
+12
+0.0
+1
+
+CHOOSER
+362
+904
+566
+949
+virus-variant
+virus-variant
+"Original" "Alfa" "Beta" "Delta" "Omicron"
+0
 
 @#$#@#$#@
 ## INTRODUCTION
@@ -4810,6 +4984,9 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _prob-outside-contagion-young_: probability that an agent that belongs to the _young_ category gets the infection outside the school.
 - _prob-outside-contagion-regular_: probability that an agent that belongs to the _regular_ category gets the infection outside the school.
 - _prob-outside-contagion-old_: probability that an agent that belongs to the _old_ category gets the infection outside the school.
+- _prob-symptomatic-young_: probability to show symptoms when a _young_ agent becomes infected.
+- _prob-symptomatic-regular_: probability to show symptoms when a _regular_ agent becomes infected.
+- _prob-symptomatic-old_: probability to show symptoms when a _old_ agent becomes infected.
 - _prob-external-screening-1_: probability to swab a student outside the school because this student follows activities that involve screening campaings.
 - _prob-external-screening-2_: probability to swab an infected students outside the school.
 - _lesson-duration-in-minutes_: duration of a single lesson in minutes.
@@ -4846,6 +5023,7 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _first-day-of-week_: day of the week on which school's screening takes place; In the case of D2 policy, one half of the group is swabbed on this day.
 - _second-day-of-week_: parameter used in the case of the D2 policy; the other half of the group is swabbed on this day.
 - _screening-adhesion-%_: percentage of students' adhesion to the screening campaign.
+- _virus-variant_: different variants of the SARS-CoV-2 virus (_alfa_, _beta_, _delta_ and _omicron_) [6].
 
 ----
 
@@ -4914,7 +5092,7 @@ The model needed some external input files inside a _Utils_ directory:
 	- Possibility of reinfection
 
 ## REFERENCES
-[1] Daniele Baccega. _SchoolSEIRModel_. _2021_. URL: https://gitlab.com/danielebaccega/schoolseirmodel.
+[1] Daniele Baccega. _SchoolSEIRModel_. _2021_. URL: https://github.com/daniele-baccega/schoolseirmodel.
 
 [2] Wilensky, U. _(1999)_. _NetLogo._ http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
@@ -4923,6 +5101,8 @@ The model needed some external input files inside a _Utils_ directory:
 [4] Nicolas Hoertel et al. _«A stochastic agent-based model of the SARS-CoV-2 epidemic in France»_. In: _Nature medicine 26.9 (2020)_, pp. 1417–1421.
 
 [5] PAPER JASS
+
+[6] J.L. Jimenez and Z. Peng, _COVID-19 Aerosol Transmission Estimator_. https://tinyurl.com/covid-estimator
 
 ## COPYRIGHT AND LICENSE
 
