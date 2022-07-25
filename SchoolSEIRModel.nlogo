@@ -158,7 +158,7 @@ turtles-own [
 
   toilet-time-in-ticks
 
-  remain-incubation-days remain-infected-days remain-quarantine-days
+  remain-incubation-days remain-infected-days remain-quarantine-days remain-removed-days
 
   cumulative-quanta-inhaled
   cumulative-quanta-inhaled-in-classroom
@@ -1336,6 +1336,7 @@ to setup-common-attributes
   set remain-incubation-days 0
   set remain-infected-days 0
   set remain-quarantine-days 0
+  set remain-removed-days 0
 
   set dad? false
 
@@ -1697,6 +1698,10 @@ to update-infected-and-outside-contagion
 		 infected?
     [ update-infected ]
 
+  if reinfection? and
+     removed?
+    [ update-removed ]
+
   if outside-contagion? and
 	   susceptible? and
 	   not quarantined?
@@ -1800,6 +1805,8 @@ to external-screening-1
     ]
 end
 
+;Da sistemare nel caso in cui iniziassimo a considerare i sintomatici. Lo screening esterno di tipo 2 serve proprio a simulare l'eventuale
+;presenza di sintomi.
 to external-screening-2 [symptoms?]
   if random 10000 < prob-external-screening-2 * 10000 or
      symptoms?
@@ -1861,7 +1868,10 @@ to act-quarantine-policy [infected-group infected-already-in-quarantine c-name i
                count infected-group + count infected-already-in-quarantine >= num-infected-needed-to-wear-mask
               [ change-mask false c-name ]
           ]
-          [ put-classroom-in-quarantine c-name quarantine-ext-1? quarantine-ext-2? ]
+          [
+            if quarantine-policy = "Old policy"
+              [ put-classroom-in-quarantine c-name quarantine-ext-1? quarantine-ext-2? ]
+          ]
       ]
     ]
 end
@@ -2318,7 +2328,7 @@ to go-bathroom [g]
         ]
 
       if breed = teachers
-        [ set teacher-condition (room-name = "TR" and remove "-" day-scheduling != [] ) ]
+        [ set teacher-condition (room-name = "TR" and remove "-" day-scheduling != [] and (item g remain-time-for-lesson-in-ticks > 1 or item g remain-time-for-interval-in-ticks > 1)) ]
 
       if toilet = []
         [
@@ -2879,10 +2889,48 @@ to become-removed
         ]
 
       set color removed-color
-
       set infected? false
       set removed? true
+
+      set remain-removed-days ceiling random-exponential mean-recovery-duration-in-days
     ]
+end
+
+to update-removed
+  set remain-removed-days remain-removed-days - 1
+
+  if remain-removed-days = 0
+    [ become-susceptible ]
+end
+
+to become-susceptible
+  ifelse quarantined?
+    [
+      ifelse quarantined-external-1?
+        [
+          set num-removed-in-quarantine-external-1 num-removed-in-quarantine-external-1 - 1
+          set num-susceptible-in-quarantine-external-1 num-susceptible-in-quarantine-external-1 + 1
+        ]
+        [
+          ifelse quarantined-external-2?
+            [
+              set num-removed-in-quarantine-external-2 num-removed-in-quarantine-external-2 - 1
+              set num-susceptible-in-quarantine-external-2 num-susceptible-in-quarantine-external-2 + 1
+            ]
+            [
+              set num-removed-in-quarantine num-removed-in-quarantine - 1
+              set num-susceptible-in-quarantine num-susceptible-in-quarantine + 1
+            ]
+        ]
+    ]
+    [
+      set num-removed num-removed - 1
+      set num-susceptible num-susceptible + 1
+    ]
+
+  set color susceptible-color
+  set susceptible? true
+  set removed? false
 end
 
 to remove-from-quarantine
@@ -3865,9 +3913,9 @@ HORIZONTAL
 
 SLIDER
 20
-600
+637
 284
-633
+670
 prob-go-bathroom
 prob-go-bathroom
 0
@@ -3880,9 +3928,9 @@ HORIZONTAL
 
 SLIDER
 20
-636
+673
 283
-669
+706
 prob-go-blackboard
 prob-go-blackboard
 0
@@ -3895,9 +3943,9 @@ HORIZONTAL
 
 SLIDER
 20
-673
+710
 283
-706
+743
 prob-go-somewhere-during-interval
 prob-go-somewhere-during-interval
 0.01
@@ -3921,9 +3969,9 @@ staggered-admissions?
 
 SLIDER
 20
-708
+745
 283
-741
+778
 prob-go-principal
 prob-go-principal
 0
@@ -3984,14 +4032,14 @@ day
 
 SLIDER
 20
-745
+782
 283
-778
+815
 prob-outside-contagion
 prob-outside-contagion
 0
 0.1
-0.02
+0.046
 0.0001
 1
 NIL
@@ -4005,7 +4053,7 @@ CHOOSER
 mask-type
 mask-type
 "no mask" "surgical" "ffp2"
-1
+0
 
 CHOOSER
 1055
@@ -4074,9 +4122,9 @@ HORIZONTAL
 
 SLIDER
 24
-475
+512
 285
-508
+545
 dad-%
 dad-%
 0
@@ -4198,9 +4246,9 @@ HORIZONTAL
 
 SLIDER
 24
-438
+475
 285
-471
+508
 num-of-quarantine-days
 num-of-quarantine-days
 7
@@ -4287,9 +4335,9 @@ second-day-of-week
 
 SLIDER
 20
-816
+853
 284
-849
+886
 prob-external-screening-1
 prob-external-screening-1
 0
@@ -4302,9 +4350,9 @@ HORIZONTAL
 
 SLIDER
 20
-852
+889
 284
-885
+922
 prob-external-screening-2
 prob-external-screening-2
 0
@@ -4350,7 +4398,7 @@ vaccine-efficacy
 vaccine-efficacy
 0
 1
-0.7
+1.0
 0.01
 1
 NIL
@@ -4395,7 +4443,7 @@ fraction-of-vaccinated-students
 fraction-of-vaccinated-students
 0
 1
-0.4
+0.0
 0.01
 1
 NIL
@@ -4408,7 +4456,7 @@ SWITCH
 885
 vaccinated-students?
 vaccinated-students?
-0
+1
 1
 -1000
 
@@ -4444,9 +4492,9 @@ HORIZONTAL
 
 SLIDER
 20
-780
+817
 284
-813
+850
 prob-symptomatic
 prob-symptomatic
 0
@@ -4459,9 +4507,9 @@ HORIZONTAL
 
 CHOOSER
 24
-512
+549
 286
-557
+594
 virus-variant
 virus-variant
 "Original" "Alfa" "Beta" "Delta" "Omicron BA.1" "Omicron BA.2"
@@ -4474,7 +4522,7 @@ CHOOSER
 971
 quarantine-policy
 quarantine-policy
-"Old policy" "November/December 2021 (Piedmont)" "January/February 2022 (Piedmont)"
+"No policy" "Old policy" "November/December 2021 (Piedmont)" "January/February 2022 (Piedmont)"
 2
 
 TEXTBOX
@@ -4499,9 +4547,9 @@ Setup world
 
 TEXTBOX
 25
-572
+609
 192
-592
+629
 Setup probability
 12
 0.0
@@ -4585,7 +4633,7 @@ CHOOSER
 mask-policy
 mask-policy
 "No policy" "No mask - ffp2" "Surgical - ffp2"
-2
+0
 
 TEXTBOX
 942
@@ -4626,6 +4674,32 @@ number-of-days-with-ffp2
 1
 NIL
 HORIZONTAL
+
+SLIDER
+24
+439
+285
+472
+mean-recovery-duration-in-days
+mean-recovery-duration-in-days
+0
+100
+60.0
+1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+1536
+1151
+1722
+1184
+reinfection?
+reinfection?
+1
+1
+-1000
 
 @#$#@#$#@
 ## INTRODUCTION
@@ -4681,6 +4755,7 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _num-groups_: number of groups in which the classrooms are divided (1 not staggered admissions, 2 staggered admissions).
 - _mean-incubation-duration-in-days_: average number of incubation days.
 - _mean-infection-duration-in-days_: average number of infection days.
+- _mean-recovery-duration-in-days_: average number of days necessary to become again a susceptible after a recovery.
 - _num-of-quarantine-days_: number of quarantine days.
 - _dad-%_: percentage of distance learning.
 - _virus-variant_: different variants of the SARS-CoV-2 virus (_alfa_, _beta_, _delta_, _omicron BA.1_ and _omicron BA.2_) [6].
@@ -4733,6 +4808,7 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _outside-contagion?_: possibility to get the infection outside the school.
 - _interval-in-front-of-classroom?_: possibility to go at most in front of their classroom during the interval and not elsewhere (the agents can always go to the bathroom).
 - _external-screening?_: external screening (outside tha school).
+- _reinfection?_: possibility of reinfection after a recovery.
 
 
 ----
@@ -4780,10 +4856,6 @@ The model needed some external input files inside a _Utils_ directory:
 - **ClassroomsScheduling.txt**: this file contains the teachers' scheduling on the five weekly days; each teacher has an associated identifier (it's important to not overlap the teachers between different classroom in the same hour). It's necessary to specify the scheduling for each interested classroom and for each day there must be six lessons.
 - **StaggeredClassroomsScheduling.txt**: this file contains the teachers' scheduling in the case of staggered admissions.
 - **GymTeachers.txt**: this file contains the identifier of the gym teachers.
-
-## EXTENDING THE MODEL
-- Introduce some features such as:
-	- Possibility of reinfection
 
 ## REFERENCES
 [1] Daniele Baccega. _SchoolSEIRModel_. _2021_. URL: https://github.com/daniele-baccega/schoolseirmodel.
