@@ -61,8 +61,8 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _prob-go-principal_: probability to go to the principal's office.
 - _prob-outside-contagion_: probability that an agent gets the infection outside the school.
 - _prob-symptomatic_: probability to show symptoms an agent becomes infected.
-- _prob-external-screening-1_: probability to swab a student outside the school because this student follows activities that involve screening campaings.
-- _prob-external-screening-2_: probability to swab an infected students outside the school.
+- _prob-external-screening-1_: probability to test a student outside the school because this student follows activities that involve screening campaings.
+- _prob-external-screening-2_: probability to test an infected students outside the school.
 - _lesson-duration-in-minutes_: duration of a single lesson in minutes.
 - _days-of-simulation_: number of simulation days for each execution of the simulator.
 - _run#_: unique identifier of the running execution.
@@ -71,9 +71,9 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _temperature-measurement_: temperature measurement type (at the entrance).
 - _ventilation-type-h-1_: ventilation type implemented in all rooms but not in the hallways.
 - _mask-type_: mask type used by agents.
-- _mask-policy_: we can use two diffentent _mask_ policies (with November/December 2021 (Piedmont) or January/February 2022 (Piedmont) quarantine policies):
+- _mask-policy_: we can use two different _masks_ policies (with November/December 2021 (Piedmont) or January/February 2022 (Piedmont) quarantine policies):
 	- No mask - ffp2: initially no agent wears a mask; if we find (inside a classroom) _num-infected-needed-to-wear-mask_ infected students then all students inside that classroom will wear the ffp2 mask for _number-of-days-with-ffp2_ days (and also all teachers).
-	- Surgical - ffp2: initially all agent wear the surgical mask; if we find (inside a classroom) _num-infected-needed-to-wear-mask_ infected students then all students inside that classroom will wear the ffp2 mask for _number-of-days-with-ffp2_ days (and also all teachers).
+	- Surgical - ffp2: initially all agents wear the surgical mask; if we find (inside a classroom) _num-infected-needed-to-wear-mask_ infected students then all students inside that classroom will wear the ffp2 mask for _number-of-days-with-ffp2_ days (and also all teachers).
 - _num-infected-needed-to-wear-mask_: number of infected students needed to apply _mask_ policy.
 - _number-of-days-with-ffp2_: number of days in which students (and teachers) must wear the ffp2 mask for the _mask_ policy.
 - _fraction-of-population-wearing-mask_: fraction of all agents that use the mask.
@@ -85,19 +85,19 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _fraction-of-vaccinated-teachers_: fraction of vaccinated teachers actually immunized.
 - _fraction-of-vaccinated-janitors_: fraction of vaccinated janitors actually immunized.
 - _vaccine-efficacy_: vaccine efficacy for vaccinated subjects.
-- _quarantine-policy_: we can use three diffentent _quarantine_ policies:
+- _quarantine-policy_: we can use three different _quarantine_ policies:
 	- Old policy (Piedmont): if we find an infected student in a classroom, we put the whole classroom in quarantine.
-	- November/December 2021 (Piedmont): if we find an infected student in a classroom, we put only this student in quarantine and we swab all the other students in the same classroom. If we find other _num-infected-needed-to-quarantine-whole-classroom_ - 1 infected students we put the whole classroom in quarantine, otherwise we'll swab again all the other students in the same classroom after _number-of-after-days-special-swab_ days. Again, if we find other _num-infected-needed-to-quarantine-whole-classroom_ - 1 infected we put the whole classroom in quarantine.
-	- January/February 2022 (Piedmont): if we find an infected student in a classroom, we put only this student in quarantine.
+	- November/December 2021 (Piedmont): if we find an infected student in a classroom, we put only that student in quarantine and we test all the other students in the same classroom. If we find other _num-infected-needed-to-quarantine-whole-classroom_ - 1 infected students we put the whole classroom in quarantine; otherwise we will test again all the other students in the same classroom after _number-of-after-days-special-swab_ days. Again, if we find other _num-infected-needed-to-quarantine-whole-classroom_ - 1 infected we put the whole classroom in quarantine.
+	- January/February 2022 (Piedmont): if we find an infected student in a classroom, we put only that student in quarantine.
 - _num-infected-needed-to-quarantine-whole-classroom_: number of infected students needed to quarantine the whole classroom with the second _quarantine_ policy.
-- _number-of-after-days-special-swab_: number of days after that, with the second _quarantine_ policy, we swab again all the other students in the same classroom of the infected student that we found.
+- _number-of-after-days-special-swab_: number of days after that, with the second _quarantine_ policy, we test again all the other students in the same classroom of the infected student that we found.
 - _screening-policy_: infection control stategy (or screening policy); we consider four different screening policies:
 	- **A1**: all every week
 	- **D1**: 1/4 of the class every week, in rotation
 	- **D2**: 1/4 of the class every week, in rotation, spread over two days of the week
 	- **W0**: no screening
-- _first-day-of-week_: day of the week on which school's screening takes place; In the case of D2 policy, one half of the group is swabbed on this day.
-- _second-day-of-week_: parameter used in the case of the D2 policy; the other half of the group is swabbed on this day.
+- _first-day-of-week_: day of the week on which school's screening takes place; In the case of D2 policy, one half of the group is tested on this day.
+- _second-day-of-week_: parameter used in the case of the D2 policy; the other half of the group is tested on this day.
 - _screening-adhesion-%_: percentage of students' adhesion to the screening campaign.
 - _staggered-admissions?_: staggered admissions (with _num-groups_ groups).
 - _spaced-desks?_: spaced desks (social distancing).
