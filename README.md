@@ -159,15 +159,6 @@ The model needed some external input files inside a _Utils_ directory:
 - **StaggeredClassroomsScheduling.txt**: this file contains the teachers' scheduling in the case of staggered admissions.
 - **GymTeachers.txt**: this file contains the identifier of the gym teachers.
 
-## EXTENDING THE MODEL
-- Fix the measure-temperature function
-- Fix the create-supply-teacher function
-- Fix the create-supply-janitor function
-- Fix the copy-teacher function
-- Fix the copy-janitor function
-- Introduce some features such as:
-	- Possibility of reinfection
-
 ## REFERENCES
 [1] Daniele Baccega. _SchoolSEIRModel_. _2021_. URL: https://github.com/daniele-baccega/schoolseirmodel.
 
