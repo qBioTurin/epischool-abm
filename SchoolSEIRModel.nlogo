@@ -4,7 +4,7 @@ extensions [matrix]
 breed [ students student ]
 breed [ teachers teacher ]
 breed [ principals principal ]
-breed [ janitors janitor ]
+breed [ staff a-staff ]
 
 
 
@@ -14,7 +14,7 @@ globals [
   movement-time-in-seconds
   movements-per-tick
 
-  num-students num-teachers num-school-janitors
+  num-students num-teachers num-school-staff
   num-agents
   num-susceptible num-exposed num-infected num-removed
   num-susceptible-in-quarantine num-exposed-in-quarantine
@@ -25,12 +25,6 @@ globals [
   num-infected-in-quarantine-external-2 num-removed-in-quarantine-external-2
   num-infected-outside
   num-vaccinated-susceptible num-vaccinated-exposed num-vaccinated-infected num-vaccinated-removed
-  num-vaccinated-susceptible-in-quarantine num-vaccinated-exposed-in-quarantine
-  num-vaccinated-infected-in-quarantine num-vaccinated-removed-in-quarantine
-  num-vaccinated-susceptible-in-quarantine-external-1 num-vaccinated-exposed-in-quarantine-external-1
-  num-vaccinated-infected-in-quarantine-external-1 num-vaccinated-removed-in-quarantine-external-1
-  num-vaccinated-susceptible-in-quarantine-external-2 num-vaccinated-exposed-in-quarantine-external-2
-  num-vaccinated-infected-in-quarantine-external-2 num-vaccinated-removed-in-quarantine-external-2
 
   classroom-letters age-groups rooms-aerosol classroom-name
 
@@ -71,14 +65,14 @@ globals [
   inhalation-rate-pure vl ngen-base risk-const
   activity-type-students activity-type-students-in-gym
   activity-type-teachers-in-classroom activity-type-teachers
-  activity-type-principals activity-type-janitors
+  activity-type-principals activity-type-staff
 
   ventilation decay-rate-of-the-virus gravitational-settling-rate
   total-first-order-loss-rate
 
   inhalation-rate-students inhalation-rate-students-in-gym
   inhalation-rate-teachers inhalation-rate-teachers-in-classroom
-  inhalation-rate-principals inhalation-rate-janitors
+  inhalation-rate-principals inhalation-rate-staff
 
   num-active-agents
   mean-quanta-inhaled
@@ -92,7 +86,7 @@ globals [
   classrooms-scheduling effective-classrooms-scheduling
   effective-teachers-flat
   gym-teachers
-  supply-teachers supply-janitors
+  supply-teachers supply-staff
 
   staggered-time-in-ticks
 
@@ -122,8 +116,6 @@ globals [
   num-of-positive-students-external-2
   classrooms-in-quarantine
 
-  after-days-swab-classrooms after-days-counters
-
   days-of-week
 
   end-day?
@@ -131,9 +123,6 @@ globals [
   day school-day
   starting-hour starting-minute starting-second
   hour minute second
-  weekend?
-
-  print-day?
 ]
 
 turtles-own [
@@ -182,7 +171,7 @@ teachers-own [
   update?
 ]
 
-janitors-own [
+staff-own [
   supply?
 ]
 
@@ -236,17 +225,35 @@ to setup-seed
   random-seed seedRun
 end
 
-to setup-global-variables
-  setup-general-variables
-  setup-counters-variables
-  setup-graphical-variables
-  setup-temperature-measurement-variables
-  setup-time-variables
-  setup-screening-variables
-  setup-contagion-variables
+to read-file-classrooms-scheduling-and-gym-teachers
+  let line []
+
+  ifelse staggered-admissions?
+    [ file-open "Utils/StaggeredClassroomsScheduling.txt" ]
+    [ file-open "Utils/ClassroomsScheduling.txt" ]
+
+  set classrooms-scheduling []
+
+  while [not file-at-end?]
+    [
+      set line file-read
+      set classrooms-scheduling lput line classrooms-scheduling
+    ]
+
+  file-close
+
+
+  file-open "Utils/GymTeachers.txt"
+
+  set gym-teachers []
+
+  while [not file-at-end?]
+    [ set gym-teachers lput file-read gym-teachers ]
+
+  file-close
 end
 
-to setup-general-variables
+to setup-global-variables
   set movement-time-in-seconds 4
   set movements-per-tick tick-duration-in-seconds / movement-time-in-seconds
 
@@ -254,20 +261,6 @@ to setup-general-variables
      num-classrooms-per-floor * num-floors = 1
     [ set num-groups 1 ]
 
-  set classroom-letters (list "A" "B" "C" "D")
-  set age-groups (list "Young" "Regular" "Old")
-  set rooms-aerosol (list "G" "TR" "PO" "TT")
-  set classroom-name []
-
-  set days-of-week (list "monday" "tuesday" "wednesday" "thursday" "friday")
-
-  set end-day? n-values num-groups [true]
-
-  set weekend? false
-  set print-day? false
-end
-
-to setup-counters-variables
   set num-students students-per-classroom * num-classrooms-per-floor * num-floors
   set num-exposed 0
   set num-infected 0
@@ -289,66 +282,12 @@ to setup-counters-variables
   set num-vaccinated-exposed 0
   set num-vaccinated-infected 0
   set num-vaccinated-removed 0
-  set num-vaccinated-susceptible-in-quarantine 0
-  set num-vaccinated-exposed-in-quarantine 0
-  set num-vaccinated-infected-in-quarantine 0
-  set num-vaccinated-removed-in-quarantine 0
-  set num-vaccinated-susceptible-in-quarantine-external-1 0
-  set num-vaccinated-exposed-in-quarantine-external-1 0
-  set num-vaccinated-infected-in-quarantine-external-1 0
-  set num-vaccinated-removed-in-quarantine-external-1 0
-  set num-vaccinated-susceptible-in-quarantine-external-2 0
-  set num-vaccinated-exposed-in-quarantine-external-2 0
-  set num-vaccinated-infected-in-quarantine-external-2 0
-  set num-vaccinated-removed-in-quarantine-external-2 0
 
-  set next-screening-group 0
-  set next-sub-screening-group 0
-  set num-of-screening-group 0
-  set num-of-sub-screening-group 0
+  set classroom-letters (list "A" "B" "C" "D")
+  set age-groups (list "Young" "Regular" "Old")
+  set rooms-aerosol (list "G" "TR" "PO" "TT")
+  set classroom-name []
 
-  set num-of-screened-students 0
-  set num-of-screened-students-external-1 0
-  set num-of-screened-students-external-2 0
-  set num-of-positive-students 0
-  set num-of-positive-students-external-1 0
-  set num-of-positive-students-external-2 0
-
-  set num-in-queue1 0
-  set num-in-queue2 0
-
-  set starting-hour 7
-  set starting-minute 35
-  set starting-second 0
-
-  set day 0
-  set school-day 0
-end
-
-to setup-graphical-variables
-  set starting-floors-x 2
-  set starting-floors-y 2
-
-  set classroom-dimension-x 10
-  set classroom-dimension-y 10
-  set corridor-dimension-x classroom-dimension-x + 1
-  set corridor-dimension-y 8
-  set bathroom-dimension-x 3
-  set bathroom-dimension-y classroom-dimension-y
-  set hall-dimension-x 35
-  set hall-dimension-y corridor-dimension-y
-  set road-dimension-x 40
-  set principal-office-dimension-x 9
-  set principal-office-dimension-y 6
-  set teachers-room-dimension-x 15
-  set teachers-room-dimension-y classroom-dimension-y
-  set gym-dimension-x 16
-  set gym-dimension-y 25
-  set measurement-room-dimension-x 11
-  set measurement-room-dimension-y classroom-dimension-y
-end
-
-to setup-contagion-variables
   set exhalation-mask-efficiency 0
   set inhalation-mask-efficiency 0
   set contamination-risk-decreased-with-mask 0
@@ -372,6 +311,29 @@ to setup-contagion-variables
 
   set contamination-risk 0.024 * (1 - contamination-risk-decreased-with-mask * fraction-of-population-wearing-mask)
 
+  set infectious-vaccinated-factor 1 - vaccine-efficacy
+
+  set starting-floors-x 2
+  set starting-floors-y 2
+
+  set classroom-dimension-x 10
+  set classroom-dimension-y 10
+  set corridor-dimension-x classroom-dimension-x + 1
+  set corridor-dimension-y 8
+  set bathroom-dimension-x 3
+  set bathroom-dimension-y classroom-dimension-y
+  set hall-dimension-x 35
+  set hall-dimension-y corridor-dimension-y
+  set road-dimension-x 40
+  set principal-office-dimension-x 9
+  set principal-office-dimension-y 6
+  set teachers-room-dimension-x 15
+  set teachers-room-dimension-y classroom-dimension-y
+  set gym-dimension-x 16
+  set gym-dimension-y 25
+  set measurement-room-dimension-x 11
+  set measurement-room-dimension-y classroom-dimension-y
+
   set one-patch-in-meters 0.7
 
   set ventilation 0
@@ -379,7 +341,96 @@ to setup-contagion-variables
   if ventilation-type-h-1 != "no ventilation"
     [ set ventilation ventilation-type-h-1 / 3600 ]
 
-  set infectious-vaccinated-factor 1 - vaccine-efficacy
+  set temperature-measurement-mean-time-in-seconds 0
+  set temperature-measurement-std-in-seconds 0
+  set num-school-staff 0
+
+  if temperature-measurement = "by hand"
+    [
+      set temperature-measurement-mean-time-in-seconds 10      ;in seconds (later I will turn it into ticks)
+      set temperature-measurement-std-in-seconds 5             ;in seconds (later I will turn it into ticks)
+      set num-school-staff 2
+      set rooms-aerosol lput "MR" rooms-aerosol
+    ]
+
+  if temperature-measurement = "termoscanner"
+    [
+      set temperature-measurement-mean-time-in-seconds 20      ;in seconds (later I will turn it into ticks)
+      set temperature-measurement-std-in-seconds 10            ;in seconds (later I will turn it into ticks)
+      set num-school-staff 2
+      set rooms-aerosol lput "MR" rooms-aerosol
+    ]
+
+  set num-in-queue1 0
+  set num-in-queue2 0
+
+  setup-aerosol-variables
+
+  set last-principal-time-in-ticks 0
+
+  set start-day-time-in-ticks 0
+  set offset-between-days-in-ticks 60 * 60 / tick-duration-in-seconds                        ;1 hour in ticks
+
+  set lesson-duration-in-ticks lesson-duration-in-minutes * 60 / tick-duration-in-seconds    ;50 or 60 minutes in ticks
+  set interval-duration-in-ticks 15 * 60 / tick-duration-in-seconds                          ;15 minutes in ticks
+
+  set offset-between-entrance-and-start-lessons-in-ticks 35 * 60 / tick-duration-in-seconds  ;35 minutes in ticks
+
+  set supply-teachers []
+  set supply-staff []
+
+  set starting-hour 7
+  set starting-minute 35
+  set starting-second 0
+
+  ;set finish-lessons-time-in-ticks 0
+
+  set staggered-time-in-ticks lesson-duration-in-ticks
+
+  setup-day-school-variables
+
+  set next-screening-group 0
+  set next-sub-screening-group 0
+  set num-of-screening-group 0
+  set num-of-sub-screening-group 0
+  set screening-groups []
+  set sub-screening-groups []
+
+  if screening-policy = "1/4 of the class every week, in rotation"
+    [
+      set num-of-screening-group 4
+      set num-of-sub-screening-group 1
+    ]
+
+  if screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
+    [
+      set num-of-screening-group 4
+      set num-of-sub-screening-group 2
+    ]
+
+  if screening-policy = "all every week"
+    [
+      set num-of-screening-group 1
+      set num-of-sub-screening-group 1
+    ]
+
+  set num-of-screened-students 0
+  set num-of-screened-students-external-1 0
+  set num-of-screened-students-external-2 0
+  set num-of-positive-students 0
+  set num-of-positive-students-external-1 0
+  set num-of-positive-students-external-2 0
+  set classrooms-in-quarantine []
+
+  set days-of-week (list "monday" "tuesday" "wednesday" "thursday" "friday")
+
+  set end-day? n-values num-groups [true]
+
+  set day 0
+  set school-day 0
+end
+
+to setup-aerosol-variables
   set classroom-length-in-meters (classroom-dimension-x + 1) * one-patch-in-meters
   set classroom-width-in-meters (classroom-dimension-y + 1) * one-patch-in-meters
   set gym-length-in-meters (gym-dimension-x + 1) * one-patch-in-meters
@@ -421,87 +472,18 @@ to setup-contagion-variables
   set activity-type-teachers-in-classroom 6.1111
   set activity-type-teachers 2.5556
   set activity-type-principals 2.5556
-  set activity-type-janitors 2.5556
+  set activity-type-staff 2.5556
 
   set inhalation-rate-students (inhalation-rate-pure * (1 - inhalation-mask-efficiency * fraction-of-population-wearing-mask) * activity-type-students) / 1000
   set inhalation-rate-students-in-gym (inhalation-rate-pure * (1 - inhalation-mask-efficiency * fraction-of-population-wearing-mask) * activity-type-students-in-gym) / 1000
   set inhalation-rate-teachers (inhalation-rate-pure * (1 - inhalation-mask-efficiency * fraction-of-population-wearing-mask) * activity-type-teachers) / 1000
   set inhalation-rate-teachers-in-classroom (inhalation-rate-pure * (1 - inhalation-mask-efficiency * fraction-of-population-wearing-mask) * activity-type-teachers-in-classroom) / 1000
   set inhalation-rate-principals (inhalation-rate-pure * (1 - inhalation-mask-efficiency * fraction-of-population-wearing-mask) * activity-type-principals) / 1000
-  set inhalation-rate-janitors (inhalation-rate-pure * (1 - inhalation-mask-efficiency * fraction-of-population-wearing-mask) * activity-type-janitors) / 1000
+  set inhalation-rate-staff (inhalation-rate-pure * (1 - inhalation-mask-efficiency * fraction-of-population-wearing-mask) * activity-type-staff) / 1000
 
   set decay-rate-of-the-virus 0.636 / 3600
   set gravitational-settling-rate 0.39 / 3600
   set total-first-order-loss-rate ventilation + decay-rate-of-the-virus  + gravitational-settling-rate
-end
-
-to setup-temperature-measurement-variables
-  set temperature-measurement-mean-time-in-seconds 0
-  set temperature-measurement-std-in-seconds 0
-  set num-school-janitors 0
-
-  if temperature-measurement = "by hand"
-    [
-      set temperature-measurement-mean-time-in-seconds 10      ;in seconds (later I will turn it into ticks)
-      set temperature-measurement-std-in-seconds 5             ;in seconds (later I will turn it into ticks)
-      set num-school-janitors 2
-      set rooms-aerosol lput "MR" rooms-aerosol
-    ]
-
-  if temperature-measurement = "termoscanner"
-    [
-      set temperature-measurement-mean-time-in-seconds 20      ;in seconds (later I will turn it into ticks)
-      set temperature-measurement-std-in-seconds 10            ;in seconds (later I will turn it into ticks)
-      set num-school-janitors 2
-      set rooms-aerosol lput "MR" rooms-aerosol
-    ]
-end
-
-to setup-screening-variables
-  set screening-groups []
-  set sub-screening-groups []
-
-  if screening-policy = "1/4 of the class every week, in rotation"
-    [
-      set num-of-screening-group 4
-      set num-of-sub-screening-group 1
-    ]
-
-  if screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
-    [
-      set num-of-screening-group 4
-      set num-of-sub-screening-group 2
-    ]
-
-  if screening-policy = "all every week"
-    [
-      set num-of-screening-group 1
-      set num-of-sub-screening-group 1
-    ]
-
-  set classrooms-in-quarantine []
-
-  set after-days-swab-classrooms []
-  set after-days-counters []
-end
-
-to setup-time-variables
-  set last-principal-time-in-ticks 0
-
-  set start-day-time-in-ticks 0
-  set offset-between-days-in-ticks 60 * 60 / tick-duration-in-seconds                        ;1 hour in ticks
-
-  set lesson-duration-in-ticks lesson-duration-in-minutes * 60 / tick-duration-in-seconds    ;50 or 60 minutes in ticks
-  set interval-duration-in-ticks 15 * 60 / tick-duration-in-seconds                          ;15 minutes in ticks
-
-  set offset-between-entrance-and-start-lessons-in-ticks 35 * 60 / tick-duration-in-seconds  ;35 minutes in ticks
-
-  set supply-teachers []
-  set supply-janitors []
-
-  set staggered-time-in-ticks lesson-duration-in-ticks
-
-  setup-day-school-variables
 end
 
 to setup-day-school-variables
@@ -1075,19 +1057,56 @@ to setup-queue-variables [sx fx sy fy]
     ]
 end
 
+to-report get-x-desks [starting-classroom-x]
+  ifelse students-per-classroom <= 18
+    [ report (list (starting-classroom-x + 3) (starting-classroom-x + 6) (starting-classroom-x + 9)) ]
+    [ report (list (starting-classroom-x + 3) (starting-classroom-x + 5) (starting-classroom-x + 7) (starting-classroom-x + 9)) ]
+end
+
+to-report get-x-chairs [starting-classroom-x]
+  ifelse students-per-classroom <= 18
+    [ report (list (starting-classroom-x + 4) (starting-classroom-x + 7) (starting-classroom-x + 10)) ]
+    [ report (list (starting-classroom-x + 4) (starting-classroom-x + 6) (starting-classroom-x + 8) (starting-classroom-x + 10)) ]
+end
+
 to setup-agents
   set num-teachers get-num-teachers
-  set num-agents num-students + num-teachers + num-school-janitors + 1
+  set num-agents num-students + num-teachers + num-school-staff + 1
   set num-susceptible num-agents
 
   setup-students
-  setup-screening-students
   setup-teachers
   setup-principal
-  setup-janitors
-  setup-vaccinated-agents
+  setup-staff
   print-day-results
   setup-infected
+end
+
+to-report get-num-teachers
+  let maximum 0
+
+  set effective-classrooms-scheduling []
+  set effective-teachers-flat []
+
+  foreach classrooms-scheduling
+    [
+      class -> if one-of patches with [room-name = first class] != nobody
+                 [ set effective-classrooms-scheduling lput class effective-classrooms-scheduling ]
+    ]
+
+  let effective-classrooms-scheduling-flat []
+
+  foreach effective-classrooms-scheduling
+    [
+      class -> foreach but-first class
+                 [
+                   sday -> foreach sday [ lesson -> set effective-classrooms-scheduling-flat lput lesson effective-classrooms-scheduling-flat ]
+                 ]
+    ]
+
+  set effective-teachers-flat remove-duplicates effective-classrooms-scheduling-flat
+
+  report length effective-teachers-flat
 end
 
 to setup-students
@@ -1130,41 +1149,35 @@ to setup-students
           set num-susceptible-in-quarantine num-susceptible-in-quarantine + 1
         ]
 
-      set i i + 1
-    ]
-end
-
-to setup-screening-students
-  if screening-policy != "no screening"
-    [
-      foreach classroom-name
+      if screening-policy != "no screening"
         [
-          c-name -> let actual-screening-group 0
-                    let actual-sub-screening-group 1
-                    set screening-groups (list 1)
-                    set sub-screening-groups (list 1)
+          set actual-sub-screening-group 1
+          set screening-groups (list 1)
+          set sub-screening-groups (list 1)
 
-                    if screening-policy = "1/4 of the class every week, in rotation" or
-                       screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
-                      [ set screening-groups shuffle (list 1 2 3 4) ]
+          if screening-policy = "1/4 of the class every week, in rotation" or
+             screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
+            [ set screening-groups shuffle (list 1 2 3 4) ]
 
-                    if screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
-                      [ set sub-screening-groups (list 1 2) ]
+          if screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
+            [ set sub-screening-groups (list 1 2) ]
 
-                    if screening-policy != "1/4 of the class every week, in rotation, spread over two days of the week"
-                      [ set second-day-of-week first-day-of-week ]
+          if screening-policy != "1/4 of the class every week, in rotation, spread over two days of the week"
+            [ set second-day-of-week first-day-of-week ]
 
-                    ask n-of floor ((floor (students-per-classroom * (1 - dad-% / 100))) * (screening-adhesion-% / 100)) students with [ classroom = c-name and not quarantined? ]
-                      [
-                        set screening-adhesion? true
-                        set actual-screening-group (actual-screening-group mod num-of-screening-group) + 1
-                        set screening-group actual-screening-group
-                        set sub-screening-group actual-sub-screening-group
+          ask n-of floor ((floor (students-per-classroom * (1 - dad-% / 100))) * (screening-adhesion-% / 100)) students with [ classroom = actual-room-name and not quarantined? ]
+            [
+              set screening-adhesion? true
+              set actual-screening-group (actual-screening-group mod num-of-screening-group) + 1
+              set screening-group actual-screening-group
+              set sub-screening-group actual-sub-screening-group
 
-                        if actual-screening-group = num-of-screening-group
-                          [ set actual-sub-screening-group (actual-sub-screening-group mod num-of-sub-screening-group) + 1 ]
-                      ]
+              if actual-screening-group = num-of-screening-group
+                [ set actual-sub-screening-group (actual-sub-screening-group mod num-of-sub-screening-group) + 1 ]
+            ]
         ]
+
+      set i i + 1
     ]
 end
 
@@ -1198,7 +1211,105 @@ to setup-teachers
   create-personal-classrooms-scheduling
 
   ask teachers
-    [ setup-common-attributes ]
+    [
+      setup-common-attributes
+
+      if vaccinated-teachers?
+        [
+          ifelse vaccine-efficacy < 1
+            [
+              set susceptible? true
+              set num-vaccinated-susceptible num-vaccinated-susceptible + 1
+            ]
+            [
+              set susceptible? false
+              set num-vaccinated-removed num-vaccinated-removed + 1
+            ]
+
+          set vaccinated? true
+          set num-susceptible num-susceptible - 1
+          set color magenta - 1
+        ]
+    ]
+end
+
+to create-personal-classrooms-scheduling
+  let name ""
+  let day-num 0
+  let lesson-num 0
+
+  foreach effective-classrooms-scheduling
+    [
+      class -> set name first class
+               set day-num 0
+
+               foreach but-first class
+                 [
+                   sday -> set lesson-num 0
+
+                           foreach sday
+                             [
+                               lesson -> ask teachers with [ teacher-idx = lesson ]
+                                           [
+                                             ifelse num-groups = 2 and [staggered-group] of one-of students with [ classroom = name ] = 1
+                                               [ set personal-classrooms-scheduling replace-item day-num personal-classrooms-scheduling (replace-item (lesson-num + 1) (item day-num personal-classrooms-scheduling) name) ]
+                                               [ set personal-classrooms-scheduling replace-item day-num personal-classrooms-scheduling (replace-item lesson-num (item day-num personal-classrooms-scheduling) name) ]
+                                           ]
+
+                                         set lesson-num lesson-num + 1
+                             ]
+
+                           set day-num day-num + 1
+                 ]
+    ]
+
+  let lesson ""
+  let other-lesson-num 0
+
+  ask teachers
+    [
+      set day-num 0
+      foreach personal-classrooms-scheduling
+        [
+          sday -> set lesson-num 0
+                  while [lesson-num < length sday]
+                    [
+                      set lesson item lesson-num sday
+
+                      if lesson != "-"
+                        [
+                          set other-lesson-num lesson-num + 1
+
+                          while [other-lesson-num < length sday and
+                                 item other-lesson-num sday = "-"]
+                            [ set other-lesson-num other-lesson-num  + 1 ]
+
+                          if other-lesson-num < length sday and
+                             other-lesson-num > lesson-num + 1
+                            [
+                              while [(lesson-num + 1) < other-lesson-num]
+                                [
+                                  set personal-classrooms-scheduling replace-item day-num personal-classrooms-scheduling (replace-item (lesson-num + 1) (item day-num personal-classrooms-scheduling) "TR")
+                                  set lesson-num lesson-num + 1
+                                ]
+                            ]
+
+                        ]
+
+                      set lesson-num lesson-num + 1
+                    ]
+
+                  set day-num day-num + 1
+
+                  if first-day-of-work = 0 and
+                     remove "-" (item (day-num - 1) personal-classrooms-scheduling) != []
+                    [ set first-day-of-work day-num ]
+        ]
+    ]
+
+
+  ask teachers with [ member? teacher-idx gym-teachers ]
+    [ set gym-teacher? true ]
 end
 
 to setup-principal
@@ -1217,27 +1328,61 @@ to setup-principal
       set staggered-group -1
 
       setup-common-attributes
+
+      if vaccinated-principals?
+        [
+          ifelse vaccine-efficacy < 1
+            [
+              set susceptible? true
+              set num-vaccinated-susceptible num-vaccinated-susceptible + 1
+            ]
+            [
+              set susceptible? false
+              set num-vaccinated-removed num-vaccinated-removed + 1
+            ]
+
+          set vaccinated? true
+          set num-susceptible num-susceptible - 1
+          set color magenta - 1
+        ]
     ]
 end
 
-to setup-janitors
-  set-default-shape janitors "person"
+to setup-staff
+  set-default-shape staff "person"
 
   let desks sort-on [pxcor] patches with [ chair? and measurement-room? ]
 
-  create-janitors num-school-janitors
+  create-staff num-school-staff
     [
-      set desk item (who mod num-school-janitors) desks
+      set desk item (who mod num-school-staff) desks
       set classroom [room-name] of desk
       set floor-idx get-floor-by-classroom classroom
 
-      ifelse random 100 < prob-old-janitors * 100
+      ifelse random 100 < prob-old-staff * 100
         [ set age-group "Old" ]
         [ set age-group "Regular" ]
 
       set staggered-group -1
 
       setup-common-attributes
+
+      if vaccinated-staff?
+        [
+          ifelse vaccine-efficacy < 1
+            [
+              set susceptible? true
+              set num-vaccinated-susceptible num-vaccinated-susceptible + 1
+            ]
+            [
+              set susceptible? false
+              set num-vaccinated-removed num-vaccinated-removed + 1
+            ]
+
+          set vaccinated? true
+          set num-susceptible num-susceptible - 1
+          set color magenta - 1
+        ]
     ]
 end
 
@@ -1289,7 +1434,7 @@ to setup-common-attributes
   set queue 0
   set queue-position -1
 
-  ifelse breed = janitors
+  ifelse breed = staff
     [ set move-time-in-ticks 0 ]
     [ set move-time-in-ticks random offset-between-entrance-and-start-lessons-in-ticks + 1 ]
 
@@ -1306,89 +1451,16 @@ to setup-common-attributes
   set hidden? true
 end
 
-to setup-vaccinated-agents
-  if vaccinated-students?
-    [
-      foreach classroom-name
-        [
-          c-name -> ask n-of (floor (students-per-classroom * fraction-of-vaccinated-students)) students with [ classroom = c-name ]
-                      [
-                        ifelse vaccine-efficacy < 1
-                          [
-                            set susceptible? true
-                            set num-vaccinated-susceptible num-vaccinated-susceptible + 1
-                          ]
-                          [
-                            set susceptible? false
-                            set num-vaccinated-removed num-vaccinated-removed + 1
-                          ]
+to-report get-floor-by-classroom [name]
+  let idx 1
 
-                        set vaccinated? true
-                        set num-susceptible num-susceptible - 1
-                        set color magenta - 1
-                      ]
-        ]
-    ]
+  if first name = "2"
+    [ set idx 2 ]
 
-  if vaccinated-teachers?
-    [
-      ask n-of (floor (num-teachers * fraction-of-vaccinated-teachers)) teachers
-        [
-          ifelse vaccine-efficacy < 1
-            [
-              set susceptible? true
-              set num-vaccinated-susceptible num-vaccinated-susceptible + 1
-            ]
-            [
-              set susceptible? false
-              set num-vaccinated-removed num-vaccinated-removed + 1
-            ]
+  if first name = "3"
+    [ set idx 3 ]
 
-          set vaccinated? true
-          set num-susceptible num-susceptible - 1
-          set color magenta - 1
-        ]
-    ]
-
-  if vaccinated-principals?
-    [
-      ask principals
-        [
-          ifelse vaccine-efficacy < 1
-            [
-              set susceptible? true
-              set num-vaccinated-susceptible num-vaccinated-susceptible + 1
-            ]
-            [
-              set susceptible? false
-              set num-vaccinated-removed num-vaccinated-removed + 1
-            ]
-
-          set vaccinated? true
-          set num-susceptible num-susceptible - 1
-          set color magenta - 1
-        ]
-    ]
-
-  if vaccinated-janitors?
-    [
-      ask n-of (floor (num-school-janitors * fraction-of-vaccinated-janitors)) janitors
-        [
-          ifelse vaccine-efficacy < 1
-            [
-              set susceptible? true
-              set num-vaccinated-susceptible num-vaccinated-susceptible + 1
-            ]
-            [
-              set susceptible? false
-              set num-vaccinated-removed num-vaccinated-removed + 1
-            ]
-
-          set vaccinated? true
-          set num-susceptible num-susceptible - 1
-          set color magenta - 1
-        ]
-    ]
+  report idx
 end
 
 to setup-infected
@@ -1427,18 +1499,18 @@ to setup-infected
         ]
     ]
 
-  if init-infected-type = "janitors"
+  if init-infected-type = "staff"
     [
-      ifelse num-school-janitors > 0
-        [ set initial-infected-breed janitors ]
+      ifelse num-school-staff > 0
+        [ set initial-infected-breed staff ]
         [
-          user-message "There are no janitors. Please, select another type of initial infected agents."
+          user-message "There are no staff. Please, select another type of initial infected agents."
           stop
         ]
 
-      if init-infected > num-school-janitors
+      if init-infected > num-school-staff
         [
-          user-message "There aren't enough janitors. Please, select another type of initial infected agents."
+          user-message "There aren't enough staff. Please, select another type of initial infected agents."
           stop
         ]
     ]
@@ -1454,10 +1526,17 @@ end
 
 ;run phase
 to go
-  end-of-day-computation
+  let stop-cond num-infected + num-exposed + num-vaccinated-infected + num-vaccinated-exposed = 0
 
-  if stop-simulation?
-    [ stop ]
+  if outside-contagion?
+    [ set stop-cond num-susceptible + num-exposed + num-infected + num-vaccinated-susceptible + num-vaccinated-exposed + num-vaccinated-infected + num-susceptible-in-quarantine + num-susceptible-in-quarantine-external-1 + num-susceptible-in-quarantine-external-2 = 0 ]
+
+  if stop-cond or
+     stop-condition
+    [
+      complete-simulation
+      stop
+    ]
 
   if next-group-activate < num-groups
     [ start-group ]
@@ -1466,8 +1545,7 @@ to go
 
   move
 
-  ;Uncomment if you want to measure the temperature at the entrance (meaningful only with a tick equal to 4, 8 or 12 seconds)
-  ;It's necessary to introduce a mechanism for symptoms detection!
+  ;To be uncomment if you want to measure the temperature at the entrance (meaningful only with a tick equal to 4, 8 or 12 seconds)
   ;if temperature-measurement != "no-measurement"
   ;  [ measure-temperature ]
 
@@ -1476,47 +1554,19 @@ to go
 
   accumulate-aerosol-all-rooms
   accumulate-contact-with-infected
-  ;Uncomment if you want to count the contacts (with 4 seconds tick, otherwise we lose a lot of contacts)
+  ;To be uncomment if you want to count the contacts (with 4 seconds tick, otherwise we lose a lot of contacts)
   ;verify-contact
+
+  if ticks >= finish-lessons-time-in-ticks-backup
+    [
+      infect-aerosol
+      infect-with-contact
+    ]
 
   if next-group-activate > 0
     [ update-school-clock ]
 
   tick
-end
-
-to end-of-day-computation
-  if ticks >= finish-lessons-time-in-ticks-backup
-    [
-      infect-aerosol
-      infect-with-contact
-
-      if stop-day and
-         not print-day?
-        [
-          print-day-results
-          set print-day? true
-        ]
-    ]
-end
-
-to-report stop-simulation?
-  let stop-seir-condition num-infected + num-exposed + num-vaccinated-infected + num-vaccinated-exposed = 0
-
-  if outside-contagion?
-    [ set stop-seir-condition num-susceptible + num-exposed + num-infected +
-          num-vaccinated-susceptible + num-vaccinated-exposed + num-vaccinated-infected +
-          num-susceptible-in-quarantine + num-susceptible-in-quarantine-external-1 + num-susceptible-in-quarantine-external-2 +
-          num-vaccinated-susceptible-in-quarantine + num-vaccinated-susceptible-in-quarantine-external-1 + num-vaccinated-susceptible-in-quarantine-external-2 = 0 ]
-
-  if stop-seir-condition or
-     stop-condition
-    [
-      complete-simulation
-      report true
-    ]
-
-  report false
 end
 
 to complete-simulation
@@ -1526,22 +1576,54 @@ to complete-simulation
 
       set day day + 1
 
-      update-quarantine
+      ask turtles with [ quarantined? ]
+        [
+		      set remain-quarantine-days remain-quarantine-days - 1
+
+		      if remain-quarantine-days = 0
+		        [ remove-from-quarantine ]
+		    ]
 
       ask turtles with [ exposed? or infected? ]
 		    [ update-infected ]
 		
-		  let first-day-screening day - (position first-day-of-week days-of-week + 1)
-      let second-day-screening day - (position second-day-of-week days-of-week + 1)
-		
-		  after-days-screening first-day-screening second-day-screening		
-		
-		  ask turtles
-        [ external-screening ]
+      if external-screening?
+      [
+		    ask students with [ not quarantined? ]
+		      [
+		        external-screening-1
+    		
+		        if not quarantined? and
+               infected?
+              [ external-screening-2 ]
+		      ]
+		  ]
 
       if screening-policy != "no screening"
-        [ school-screening-complete-simulation first-day-screening second-day-screening ]
+        [
+          if (day - (position first-day-of-week days-of-week + 1)) mod 7 = 0
+            [
+              set num-of-screened-students num-of-screened-students + count students with [ not quarantined? and screening-group = item next-screening-group screening-groups and sub-screening-group = item next-sub-screening-group sub-screening-groups ]
+
+              set next-screening-group (next-screening-group + 1) mod num-of-screening-group
+              set next-sub-screening-group (next-sub-screening-group + 1) mod num-of-sub-screening-group
+            ]
+
+          if screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
+            [
+              if (day - (position second-day-of-week days-of-week + 1)) mod 7 = 0
+                [
+                  set num-of-screened-students num-of-screened-students + count students with [ not quarantined? and screening-group = item next-screening-group screening-groups and sub-screening-group = item next-sub-screening-group sub-screening-groups ]
+
+                  set next-sub-screening-group (next-sub-screening-group + 1) mod num-of-sub-screening-group
+                  if next-sub-screening-group = 1
+                    [ set next-screening-group (next-screening-group + 1) mod num-of-screening-group ]
+                ]
+            ]
+        ]
     ]
+
+  stop
 end
 
 to start-group
@@ -1551,210 +1633,128 @@ to start-group
     [
       ifelse next-group-activate = 0
         [
-          set print-day? false
+          let weekend? false
 
-          let num-days get-num-days
+          if school-day != 0 and
+             school-day mod 5 = 0
+            [ set weekend? true ]
 
           set school-day school-day + 1
-  	
-  	      let first-day-screening school-day - (position first-day-of-week days-of-week + 1)
-  	      let second-day-screening school-day - (position second-day-of-week days-of-week + 1)
-  	
-  	      sanitize-school
 
-          let i 0
+          ask patches
+            [ set cumulative-quanta-concentration 0 ]
+
+					let num-days 1
+		
+          if weekend?
+  	        [ set num-days 3 ]
+
 	        repeat num-days
-	          [	
-	            reset-school-clock
-	
-              update-quarantine
+	          [
+	            if day > 0
+	              [ print-day-results ]
+	  				
+              ask turtles with [ quarantined? ]
+                [
+		              set remain-quarantine-days remain-quarantine-days - 1
 
-              after-days-screening first-day-screening second-day-screening
+		              if remain-quarantine-days = 0
+		                [ remove-from-quarantine ]
+		            ]
 
  	            ask turtles
-    	          [ update-infected-and-outside-contagion ]
+    	          [
+    	            if day != 0
+    	              [		
+    	      	        if exposed? or
+    		                 infected?
+    		      	        [ update-infected ]
+                    ]
 
-              ask turtles
-                [ external-screening ]
+                    if outside-contagion? and
+    		               susceptible? and
+    		               not quarantined?
+    		              [ outside-contagion ]
+    		
+    		          if external-screening? and
+                     not quarantined? and
+    		             breed = students
+    		            [
+    		              external-screening-1
+    		
+    		              if not quarantined? and
+                         infected?
+    		                [ external-screening-2 ]
+    		            ]
 
-              if weekend? and
-                 i < 2
-	              [ print-day-results ]
+                  set floor-idx get-floor-by-classroom classroom
 
-              set i i + 1
+        		      set cumulative-quanta-inhaled 0
+        		      set cumulative-quanta-inhaled-in-classroom 0
+    		          set cumulative-quanta-inhaled-in-gym 0
+    		          set cumulative-quanta-inhaled-in-measurement-room 0
+    		          set cumulative-quanta-inhaled-in-principal-office 0
+    		          set cumulative-quanta-inhaled-in-teachers-room 0
+    		          set cumulative-quanta-inhaled-in-bathroom 0
+                ]
+
+              reset-school-clock
             ]
 
-          set weekend? false
+           repeat num-days - 1
+	          [
+              set start-day-time-in-ticks ticks + offset-between-days-in-ticks
+              setup-day-school-variables
+            ]
+
+          set contact-time-with-infected-matrix-in-ticks matrix:make-constant (num-agents * 2) (num-agents * 2) 0
+          set is-in-contact-matrix? matrix:make-constant (num-agents * 2) (num-agents * 2) 0
+          set contact-time-matrix-in-ticks matrix:make-constant (num-agents * 2) (num-agents * 2) 0
+          set number-of-contact-matrix matrix:make-constant (num-agents * 2) (num-agents * 2) 0
+
+          set num-active-agents n-values 5 [0]
+          set mean-quanta-inhaled n-values 5 [0]
+          set mean-quanta-inhaled-in-classroom n-values 5 [0]
+          set mean-quanta-inhaled-in-gym n-values 5 [0]
+          set mean-quanta-inhaled-in-measurement-room n-values 5 [0]
+          set mean-quanta-inhaled-in-principal-office n-values 5 [0]
+          set mean-quanta-inhaled-in-teachers-room n-values 5 [0]
+          set mean-quanta-inhaled-in-bathroom n-values 5 [0]
 
           ask teachers with [staggered-group >= 0]
             [ update-day-scheduling ]
 
-          ask janitors with [ not quarantined? ]
+          ask staff with [ not quarantined? ]
             [ setup-initial-targets ]
 
           if screening-policy != "no screening"
-            [ school-screening first-day-screening second-day-screening ]
+            [
+              if (school-day - (position first-day-of-week days-of-week + 1)) mod 5 = 0
+                [ screening ]
+
+              if screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
+                [
+                  if (school-day - (position second-day-of-week days-of-week + 1)) mod 5 = 0
+                    [ screening ]
+                ]
+            ]
         ]
         [ update-teachers-classroom next-group-activate ]
 
       set end-day? replace-item next-group-activate end-day? false
+
       set next-group-activate next-group-activate + 1
-    ]
-end
-
-to update-quarantine
-  ask turtles with [ quarantined? ]
-    [
-	    set remain-quarantine-days remain-quarantine-days - 1
-
-		  if remain-quarantine-days = 0
-		    [ remove-from-quarantine ]
-		]
-end
-
-to sanitize-school
-  ask turtles
-    [
-      set cumulative-quanta-inhaled 0
-      set cumulative-quanta-inhaled-in-classroom 0
-	    set cumulative-quanta-inhaled-in-gym 0
-	    set cumulative-quanta-inhaled-in-measurement-room 0
-	    set cumulative-quanta-inhaled-in-principal-office 0
-	    set cumulative-quanta-inhaled-in-teachers-room 0
-	    set cumulative-quanta-inhaled-in-bathroom 0
-    ]
-
-  ask patches
-    [ set cumulative-quanta-concentration 0 ]
-
-  set contact-time-with-infected-matrix-in-ticks matrix:make-constant (num-agents * 2) (num-agents * 2) 0
-  set is-in-contact-matrix? matrix:make-constant (num-agents * 2) (num-agents * 2) 0
-  set contact-time-matrix-in-ticks matrix:make-constant (num-agents * 2) (num-agents * 2) 0
-  set number-of-contact-matrix matrix:make-constant (num-agents * 2) (num-agents * 2) 0
-
-  set num-active-agents n-values 5 [0]
-  set mean-quanta-inhaled n-values 5 [0]
-  set mean-quanta-inhaled-in-classroom n-values 5 [0]
-  set mean-quanta-inhaled-in-gym n-values 5 [0]
-  set mean-quanta-inhaled-in-measurement-room n-values 5 [0]
-  set mean-quanta-inhaled-in-principal-office n-values 5 [0]
-  set mean-quanta-inhaled-in-teachers-room n-values 5 [0]
-  set mean-quanta-inhaled-in-bathroom n-values 5 [0]
-end
-
-to update-infected-and-outside-contagion
-  if exposed? or
-		 infected?
-    [ update-infected ]
-
-  if outside-contagion? and
-	   susceptible? and
-	   not quarantined?
-	  [ outside-contagion ]
-
-  set floor-idx get-floor-by-classroom classroom
-end
-
-to external-screening
-  if external-screening? and
-     not quarantined? and
-		 breed = students
-	  [
-		  external-screening-1
-		
-		  if not quarantined? and
-         infected?
-		    [ external-screening-2 ]
-		]
-end
-
-to school-screening-complete-simulation [first-day-screening second-day-screening]
-  if first-day-screening mod 7 = 0
-    [
-      set num-of-screened-students num-of-screened-students + count students with [ not quarantined? and screening-group = item next-screening-group screening-groups and sub-screening-group = item next-sub-screening-group sub-screening-groups ]
-
-      set next-screening-group (next-screening-group + 1) mod num-of-screening-group
-      set next-sub-screening-group (next-sub-screening-group + 1) mod num-of-sub-screening-group
-    ]
-
-  if screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
-    [
-      if second-day-screening mod 7 = 0
-        [
-          set num-of-screened-students num-of-screened-students + count students with [ not quarantined? and screening-group = item next-screening-group screening-groups and sub-screening-group = item next-sub-screening-group sub-screening-groups ]
-
-          set next-sub-screening-group (next-sub-screening-group + 1) mod num-of-sub-screening-group
-          if next-sub-screening-group = 1
-            [ set next-screening-group (next-screening-group + 1) mod num-of-screening-group ]
-        ]
-    ]
-end
-
-to school-screening [first-day-screening second-day-screening]
-  if first-day-screening mod 5 = 0
-    [ screening ]
-
-  if screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week"
-    [
-      if second-day-screening mod 5 = 0
-        [ screening ]
     ]
 end
 
 to screening
   foreach classroom-name
     [
-      c-name -> let index position c-name after-days-swab-classrooms
-                let remaining-days -1
-                if index != false
-                  [ set remaining-days item index after-days-counters ]
+      c-name -> set num-of-screened-students num-of-screened-students + count students with [ not quarantined? and classroom = c-name and screening-group = item next-screening-group screening-groups and sub-screening-group = item next-sub-screening-group sub-screening-groups ]
+                set num-of-positive-students num-of-positive-students + count students with [ not quarantined? and infected? and classroom = c-name and screening-group = item next-screening-group screening-groups and sub-screening-group = item next-sub-screening-group sub-screening-groups ]
 
-                ifelse remaining-days != number-of-after-days-special-swab or
-                       remaining-days != 0
-                  [
-                    let screened-students students with [ not quarantined? and classroom = c-name and screening-group = item next-screening-group screening-groups and sub-screening-group = item next-sub-screening-group sub-screening-groups ]
-                    let infected-group students with [ classroom = c-name and screening-group = item next-screening-group screening-groups and sub-screening-group = item next-sub-screening-group sub-screening-groups and infected? and not quarantined? ]
-                    set num-of-screened-students num-of-screened-students + count screened-students
-                    set num-of-positive-students num-of-positive-students + count infected-group
-
-                    if count infected-group > 0
-                      [
-                        ifelse not whole-classroom-quarantined?
-                        [
-                          let infected-already-in-quarantine students with [ classroom = c-name and quarantined? ]
-
-                          ifelse count infected-group + count infected-already-in-quarantine >= num-infected-needed-to-quarantine-whole-classroom
-                            [
-                              ask infected-already-in-quarantine
-                                [ set remain-quarantine-days num-of-quarantine-days ]
-
-                              put-classroom-in-quarantine c-name false false
-
-                              if index != false
-                                [
-                                  set after-days-swab-classrooms remove-item index after-days-swab-classrooms
-                                  set after-days-counters remove-item index after-days-counters
-                                ]
-                            ]
-                            [
-                              ask infected-group
-                                [ put-student-in-quarantine false false ]
-
-                              set infected-already-in-quarantine students with [ classroom = c-name and quarantined? ]
-
-                              swab-other-students students with [classroom = c-name and (screening-group != item next-screening-group screening-groups or sub-screening-group != item next-sub-screening-group sub-screening-groups) and not quarantined?] infected-already-in-quarantine c-name false
-                            ]
-                        ]
-                        [ put-classroom-in-quarantine c-name false false ]
-                      ]
-                  ]
-                  [
-                    if remaining-days = 0
-                      [
-                        set after-days-swab-classrooms remove-item index after-days-swab-classrooms
-                        set after-days-counters remove-item index after-days-counters
-                      ]
-                  ]
+                if count students with [ classroom = c-name and screening-group = item next-screening-group screening-groups and sub-screening-group = item next-sub-screening-group sub-screening-groups and infected? and not quarantined? ] > 0
+                  [ put-classroom-in-quarantine c-name false false ]
     ]
 
   set next-sub-screening-group (next-sub-screening-group + 1) mod num-of-sub-screening-group
@@ -1770,33 +1770,7 @@ to external-screening-1
       if infected?
         [
           set num-of-positive-students-external-1 num-of-positive-students-external-1 + 1
-          let quarantined-students-in-the-same-classroom students with [ classroom = [classroom] of myself and quarantined? ]
-
-          ifelse not whole-classroom-quarantined?
-          [
-            ifelse count quarantined-students-in-the-same-classroom + 1 >= num-infected-needed-to-quarantine-whole-classroom
-              [
-                ask quarantined-students-in-the-same-classroom
-                  [ set remain-quarantine-days num-of-quarantine-days ]
-
-                put-classroom-in-quarantine classroom true false
-
-                let index position classroom after-days-swab-classrooms
-                if index != false
-                  [
-                    set after-days-swab-classrooms remove-item index after-days-swab-classrooms
-                    set after-days-counters remove-item index after-days-counters
-                  ]
-              ]
-              [
-                put-student-in-quarantine true false
-
-                set quarantined-students-in-the-same-classroom students with [ classroom = [classroom] of myself and quarantined? ]
-
-                swab-other-students students with [classroom = [classroom] of myself and not quarantined? and who != [who] of myself] quarantined-students-in-the-same-classroom classroom false
-              ]
-          ]
-          [ put-classroom-in-quarantine classroom true false ]
+          put-classroom-in-quarantine classroom true false
         ]
     ]
 end
@@ -1806,97 +1780,7 @@ to external-screening-2
     [
       set num-of-screened-students-external-2 num-of-screened-students-external-2 + 1
       set num-of-positive-students-external-2 num-of-positive-students-external-2 + 1
-
-      let quarantined-students-in-the-same-classroom students with [ classroom = [classroom] of myself and quarantined? ]
-
-      ifelse not whole-classroom-quarantined?
-      [
-        ifelse count quarantined-students-in-the-same-classroom + 1 >= num-infected-needed-to-quarantine-whole-classroom
-          [
-            ask quarantined-students-in-the-same-classroom
-              [ set remain-quarantine-days num-of-quarantine-days ]
-
-            put-classroom-in-quarantine classroom false true
-
-            let index position classroom after-days-swab-classrooms
-            if index != false
-              [
-                set after-days-swab-classrooms remove-item index after-days-swab-classrooms
-                set after-days-counters remove-item index after-days-counters
-              ]
-          ]
-          [
-            put-student-in-quarantine false true
-
-            set quarantined-students-in-the-same-classroom students with [ classroom = [classroom] of myself and quarantined? ]
-
-            swab-other-students students with [classroom = [classroom] of myself and not quarantined? and who != [who] of myself] quarantined-students-in-the-same-classroom classroom false
-          ]
-      ]
-      [ put-classroom-in-quarantine classroom false true ]
-    ]
-end
-
-to swab-other-students [students-list quarantined-students-in-the-same-classroom c-name special-swab]
-  let infected-students students-list with [ infected? ]
-  set num-of-screened-students num-of-screened-students + count students-list
-  set num-of-positive-students num-of-positive-students + count infected-students
-
-  ifelse count infected-students > 0
-    [
-      ifelse count infected-students + count quarantined-students-in-the-same-classroom >= num-infected-needed-to-quarantine-whole-classroom
-        [
-          ask quarantined-students-in-the-same-classroom
-            [ set remain-quarantine-days num-of-quarantine-days ]
-
-          put-classroom-in-quarantine c-name false false
-        ]
-        [
-          ask infected-students
-            [ put-student-in-quarantine false false ]
-
-          if not special-swab and
-             position c-name after-days-swab-classrooms = false
-            [
-              set after-days-swab-classrooms lput c-name after-days-swab-classrooms
-              set after-days-counters lput number-of-after-days-special-swab after-days-counters
-            ]
-        ]
-    ]
-    [
-      if not special-swab and
-         position c-name after-days-swab-classrooms = false
-        [
-          set after-days-swab-classrooms lput c-name after-days-swab-classrooms
-          set after-days-counters lput number-of-after-days-special-swab after-days-counters
-        ]
-    ]
-end
-
-to after-days-screening [first-day-screening second-day-screening]
-  let i 0
-  while [i < length after-days-counters]
-    [
-      set after-days-counters replace-item i after-days-counters (item i after-days-counters - 1)
-
-      if item i after-days-counters = 0
-        [
-          let c-name item i after-days-swab-classrooms
-          let students-list students with [ classroom = c-name and not quarantined? ]
-          let infected-already-in-quarantine students with [ classroom = c-name and quarantined? ]
-
-          swab-other-students students-list infected-already-in-quarantine c-name true
-
-          if first-day-screening mod 5 != 0 and
-             not (screening-policy = "1/4 of the class every week, in rotation, spread over two days of the week" and second-day-screening mod 5 = 0)
-            [
-              set after-days-swab-classrooms remove-item i after-days-swab-classrooms
-              set after-days-counters remove-item i after-days-counters
-              set i i - 1
-            ]
-        ]
-
-      set i i + 1
+      put-classroom-in-quarantine classroom false true
     ]
 end
 
@@ -1909,7 +1793,7 @@ to start-agents
 
       ifelse temperature-measurement != "no measurement"
         [
-          ifelse breed != janitors
+          ifelse breed != staff
             [ set-queue-and-temperature-time ]
             [ set temperature-already-measured? true ]
         ]
@@ -1935,34 +1819,29 @@ to set-queue-and-temperature-time
   set temperature-time-in-ticks floor (abs random-normal temperature-measurement-mean-time-in-seconds temperature-measurement-std-in-seconds) / tick-duration-in-seconds
 end
 
-to move-queue
-  ifelse queue = 1
-    [
-      set num-in-queue1 num-in-queue1 - 1
-
-      ask turtles with [ not temperature-already-measured? and queue-position > 0 and queue = 1 ]
-        [
-          set queue-position queue-position - 1
-          update-temperature-measurement-targets
-          face first targets
-        ]
-    ]
-    [
-      set num-in-queue2 num-in-queue2 - 1
-
-      ask turtles with [ not temperature-already-measured? and queue-position > 0 and queue = 2 ]
-        [
-          set queue-position queue-position - 1
-          update-temperature-measurement-targets
-          face first targets
-        ]
-    ]
-end
-
 to set-gym-hour [bool class-name]
   set gym-hour? bool
   ask students with [ classroom = class-name and not quarantined? ]
     [ set gym-hour? bool ]
+end
+
+to reset-school-clock
+  set day day + 1
+  set hour starting-hour
+  set minute starting-minute
+  set second starting-second
+end
+
+to update-school-clock
+  if second >= 60 - tick-duration-in-seconds
+    [
+      if minute = 59
+        [ set hour hour + 1 ]
+
+      set minute (minute + 1) mod 60
+    ]
+
+  set second (second + tick-duration-in-seconds) mod 60
 end
 
 to update-day-scheduling
@@ -2033,11 +1912,13 @@ to move
     ]
 end
 
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
+;Da rivedere se è necessario utilizzarlo in quanto non abbiamo più i sintomatici.
+;Introdurre una probabilità di beccare un infetto.
+;Inoltre è necessario trasformare tutto in ticks.
 ;to measure-temperature
 ;  ask turtles with [ queue-position = 0 ]
 ;    [
-;      if [ length targets ] of one-of janitors = 1 and measure-temperature-patch?
+;      if [ length targets ] of one-of staff = 1 and measure-temperature-patch?
 ;        [
 ;          ifelse temperature-time-in-seconds > 0
 ;            [ set temperature-time-in-seconds temperature-time-in-seconds - 1 ]
@@ -2065,14 +1946,14 @@ end
 ;                        [ create-supply-teacher ]
 ;                    ]
 ;
-;                  if breed = janitors
+;                  if breed = staff
 ;                    [
-;                      ifelse supply-janitors != []
+;                      ifelse supply-staff != []
 ;                        [
-;                          copy-janitors (first supply-janitors) who
-;                          set supply-janitors but-first supply-janitors
+;                          copy-staff (first supply-staff) who
+;                          set supply-staff but-first supply-staff
 ;                        ]
-;                        [ create-supply-janitors ]
+;                        [ create-supply-staff ]
 ;                    ]
 ;                ]
 ;
@@ -2081,6 +1962,30 @@ end
 ;        ]
 ;    ]
 ;end
+
+to move-queue
+  ifelse queue = 1
+    [
+      set num-in-queue1 num-in-queue1 - 1
+
+      ask turtles with [ not temperature-already-measured? and queue-position > 0 and queue = 1 ]
+        [
+          set queue-position queue-position - 1
+          update-temperature-measurement-targets
+          face first targets
+        ]
+    ]
+    [
+      set num-in-queue2 num-in-queue2 - 1
+
+      ask turtles with [ not temperature-already-measured? and queue-position > 0 and queue = 2 ]
+        [
+          set queue-position queue-position - 1
+          update-temperature-measurement-targets
+          face first targets
+        ]
+    ]
+end
 
 to update-lessons
   let g 0
@@ -2255,6 +2160,9 @@ to update-teachers-classroom [g]
               set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
               set targets lput desk targets
 
+              ;if gym-hour?
+              ;  [ go-gym-single-agent ]
+
               face first targets
             ]
         ]
@@ -2289,7 +2197,7 @@ to go-blackboard [g]
 end
 
 to go-bathroom [g]
-  ask turtles with [ (staggered-group = g or member? breed list principals janitors) and not quarantined? and temperature-already-measured? ]
+  ask turtles with [ (staggered-group = g or member? breed list principals staff) and not quarantined? and temperature-already-measured? ]
     [
       let bathroom-name "TT"
       let bathroom-floor 1
@@ -2369,7 +2277,7 @@ to end-school-day [g]
     [
       set start-day-time-in-ticks ticks + offset-between-days-in-ticks
       setup-day-school-variables
-      ask turtles with [ breed != janitors ]
+      ask turtles with [ breed != staff ]
         [ set move-time-in-ticks random offset-between-entrance-and-start-lessons-in-ticks + 1 ]
 
       ask patches with [ occupied? ]
@@ -2387,113 +2295,71 @@ end
 
 to accumulate-aerosol [room]
   let people count turtles with [ room-name = room ]
-  let infected-student count turtles with [ not vaccinated? and breed = students and infected? and room-name = room ]
-  let infected-teacher count turtles with [ not vaccinated? and breed = teachers and infected? and room-name = room ]
-  let infected-principal count turtles with [ not vaccinated? and breed = principals and infected? and room-name = room ]
-  let infected-janitors count turtles with [ not vaccinated? and breed = janitors and infected? and room-name = room ]
-  let infected-student-vaccinated count turtles with [ vaccinated? and breed = students and infected? and room-name = room ]
-  let infected-teacher-vaccinated count turtles with [ vaccinated? and breed = teachers and infected? and room-name = room ]
-  let infected-principal-vaccinated count turtles with [ vaccinated? and breed = principals and infected? and room-name = room ]
-  let infected-janitors-vaccinated count turtles with [ vaccinated? and breed = janitors and infected? and room-name = room ]
-  let infectious-vaccinated-factor-students 0
+  let infected-student count turtles with [ breed = students and infected? and room-name = room ]
+  let infected-teacher count turtles with [ breed = teachers and infected? and room-name = room ]
+  let infected-principal count turtles with [ breed = principals and infected? and room-name = room ]
+  let infected-staff count turtles with [ breed = staff and infected? and room-name = room ]
   let infectious-vaccinated-factor-teachers 0
   let infectious-vaccinated-factor-principals 0
-  let infectious-vaccinated-factor-janitors 0
+  let infectious-vaccinated-factor-staff 0
   let has-people 0
   let dt tick-duration-in-seconds
   let volume classroom-volume
 
   if vaccine-efficacy < 1
     [
-      if vaccinated-students?
-        [ set infectious-vaccinated-factor-students infectious-vaccinated-factor ]
-
       if vaccinated-teachers?
         [ set infectious-vaccinated-factor-teachers infectious-vaccinated-factor ]
 
       if vaccinated-principals?
         [ set infectious-vaccinated-factor-principals infectious-vaccinated-factor ]
 
-      if vaccinated-janitors?
-        [ set infectious-vaccinated-factor-janitors infectious-vaccinated-factor ]
+      if vaccinated-staff?
+        [ set infectious-vaccinated-factor-staff infectious-vaccinated-factor ]
     ]
 
   let base-n-r-students (activity-type-students * ngen-base) / (10 ^ vl)
   let base-n-r-students-in-gym (activity-type-students-in-gym * ngen-base) / (10 ^ vl)
-  let base-n-r-teachers (activity-type-teachers * ngen-base) / (10 ^ vl)
-  let base-n-r-teachers-in-classroom (activity-type-teachers-in-classroom * ngen-base) / (10 ^ vl)
-  let base-n-r-principals (activity-type-principals * ngen-base) / (10 ^ vl)
-  let base-n-r-janitors (activity-type-janitors * ngen-base) / (10 ^ vl)
-
-  let base-n-r-students-vaccinated (activity-type-students * ngen-base * infectious-vaccinated-factor-students) / (10 ^ vl)
-  let base-n-r-students-in-gym-vaccinated (activity-type-students-in-gym * ngen-base * infectious-vaccinated-factor-students) / (10 ^ vl)
-  let base-n-r-teachers-vaccinated (activity-type-teachers * ngen-base * infectious-vaccinated-factor-teachers) / (10 ^ vl)
-  let base-n-r-teachers-in-classroom-vaccinated (activity-type-teachers-in-classroom * ngen-base * infectious-vaccinated-factor-teachers) / (10 ^ vl)
-  let base-n-r-principals-vaccinated (activity-type-principals * ngen-base * infectious-vaccinated-factor-principals) / (10 ^ vl)
-  let base-n-r-janitors-vaccinated (activity-type-janitors * ngen-base * infectious-vaccinated-factor-janitors) / (10 ^ vl)
-
+  let base-n-r-teachers (activity-type-teachers * ngen-base * infectious-vaccinated-factor-teachers) / (10 ^ vl)
+  let base-n-r-teachers-in-classroom (activity-type-teachers-in-classroom * ngen-base * infectious-vaccinated-factor-teachers) / (10 ^ vl)
+  let base-n-r-principals (activity-type-principals * ngen-base * infectious-vaccinated-factor-principals) / (10 ^ vl)
+  let base-n-r-staff (activity-type-staff * ngen-base * infectious-vaccinated-factor-staff) / (10 ^ vl)
   let n-r-students (10 ^ vl) * base-n-r-students * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
   let n-r-students-in-gym (10 ^ vl) * base-n-r-students-in-gym * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
   let n-r-teachers (10 ^ vl) * base-n-r-teachers * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
   let n-r-teachers-in-classroom (10 ^ vl) * base-n-r-teachers-in-classroom * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
   let n-r-principals (10 ^ vl) * base-n-r-principals * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
-  let n-r-janitors (10 ^ vl) * base-n-r-janitors * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
-
-  let n-r-students-vaccinated (10 ^ vl) * base-n-r-students-vaccinated * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
-  let n-r-students-in-gym-vaccinated (10 ^ vl) * base-n-r-students-in-gym-vaccinated * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
-  let n-r-teachers-vaccinated (10 ^ vl) * base-n-r-teachers-vaccinated * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
-  let n-r-teachers-in-classroom-vaccinated (10 ^ vl) * base-n-r-teachers-in-classroom-vaccinated * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
-  let n-r-principals-vaccinated (10 ^ vl) * base-n-r-principals-vaccinated * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
-  let n-r-janitors-vaccinated (10 ^ vl) * base-n-r-janitors-vaccinated * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
-
-  let total-n-r n-r-students * infected-student + n-r-students-vaccinated * infected-student-vaccinated +
-      n-r-teachers-in-classroom * infected-teacher + n-r-teachers-in-classroom-vaccinated * infected-teacher-vaccinated +
-      n-r-principals * infected-principal + n-r-principals-vaccinated * infected-principal-vaccinated +
-      n-r-janitors * infected-janitors + n-r-janitors-vaccinated * infected-janitors-vaccinated
+  let n-r-staff (10 ^ vl) * base-n-r-staff * (1 - exhalation-mask-efficiency * fraction-of-population-wearing-mask)
+  let total-n-r n-r-students * infected-student + n-r-teachers-in-classroom * infected-teacher + n-r-principals * infected-principal + n-r-staff * infected-staff
 
   if room = "TR"
     [
       set volume teachers-room-volume
-      set total-n-r n-r-students * infected-student + n-r-students-vaccinated * infected-student-vaccinated +
-          n-r-teachers * infected-teacher + n-r-teachers-vaccinated * infected-teacher-vaccinated +
-          n-r-principals * infected-principal + n-r-principals-vaccinated * infected-principal-vaccinated +
-          n-r-janitors * infected-janitors + n-r-janitors-vaccinated * infected-janitors-vaccinated
+      set total-n-r n-r-students * infected-student + n-r-teachers * infected-teacher + n-r-principals * infected-principal + n-r-staff * infected-staff
     ]
 
   if room = "PO"
     [
       set volume principal-office-volume
-      set total-n-r n-r-students * infected-student + n-r-students-vaccinated * infected-student-vaccinated +
-          n-r-teachers * infected-teacher + n-r-teachers-vaccinated * infected-teacher-vaccinated +
-          n-r-principals * infected-principal + n-r-principals-vaccinated * infected-principal-vaccinated +
-          n-r-janitors * infected-janitors + n-r-janitors-vaccinated * infected-janitors-vaccinated
+      set total-n-r n-r-students * infected-student + n-r-teachers * infected-teacher + n-r-principals * infected-principal + n-r-staff * infected-staff
     ]
 
   if room = "MR"
     [
       set volume measurement-room-volume
-      set total-n-r n-r-students * infected-student + n-r-students-vaccinated * infected-student-vaccinated +
-          n-r-teachers * infected-teacher + n-r-teachers-vaccinated * infected-teacher-vaccinated +
-          n-r-principals * infected-principal + n-r-principals-vaccinated * infected-principal-vaccinated +
-          n-r-janitors * infected-janitors + n-r-janitors-vaccinated * infected-janitors-vaccinated
+      set total-n-r n-r-students * infected-student + n-r-teachers * infected-teacher + n-r-principals * infected-principal + n-r-staff * infected-staff
     ]
 
   if room = "G"
     [
       set volume gym-volume
-      set total-n-r n-r-students-in-gym * infected-student + n-r-students-in-gym-vaccinated * infected-student-vaccinated +
-          n-r-teachers * infected-teacher + n-r-teachers-vaccinated * infected-teacher-vaccinated +
-          n-r-principals * infected-principal + n-r-principals-vaccinated * infected-principal-vaccinated +
-          n-r-janitors * infected-janitors + n-r-janitors-vaccinated * infected-janitors-vaccinated
+      set total-n-r n-r-students-in-gym * infected-student + n-r-teachers * infected-teacher + n-r-principals * infected-principal + n-r-staff * infected-staff
     ]
 
   if last room = "T"
     [
       set volume bathroom-volume
-      set total-n-r n-r-students * infected-student + n-r-students-vaccinated * infected-student-vaccinated +
-          n-r-teachers * infected-teacher + n-r-teachers-vaccinated * infected-teacher-vaccinated +
-          n-r-principals * infected-principal + n-r-principals-vaccinated * infected-principal-vaccinated +
-          n-r-janitors * infected-janitors + n-r-janitors-vaccinated * infected-janitors-vaccinated
+      set total-n-r n-r-students * infected-student + n-r-teachers * infected-teacher + n-r-principals * infected-principal + n-r-staff * infected-staff
     ]
 
   if people > 0
@@ -2501,22 +2367,14 @@ to accumulate-aerosol [room]
 
   ask patches with [ entrance? and room-name = room ]
     [
-      set cumulative-quanta-concentration (has-people * total-n-r) / volume / total-first-order-loss-rate +
-                                          (cumulative-quanta-concentration - ((has-people * total-n-r) / volume / total-first-order-loss-rate)) * exp(- total-first-order-loss-rate * dt)
+      set cumulative-quanta-concentration (has-people * total-n-r) / volume / total-first-order-loss-rate + (cumulative-quanta-concentration - ((has-people * total-n-r) / volume / total-first-order-loss-rate)) * exp(- total-first-order-loss-rate * dt)
 
       ask turtles with [ room-name = room and susceptible? and not entrance? ]
         [
           let inhalation-rate inhalation-rate-students
 
-          if vaccinated?
-            [ set inhalation-rate inhalation-rate-students * infectious-vaccinated-factor-students ]
-
           if room = "G"
-            [
-              ifelse vaccinated?
-                [ set inhalation-rate inhalation-rate-students-in-gym * infectious-vaccinated-factor-students ]
-                [ set inhalation-rate inhalation-rate-students-in-gym ]
-            ]
+            [ set inhalation-rate inhalation-rate-students-in-gym ]
 
           if breed = teachers
             [
@@ -2524,23 +2382,14 @@ to accumulate-aerosol [room]
                 [ set inhalation-rate inhalation-rate-teachers-in-classroom ]
                 [ set inhalation-rate inhalation-rate-teachers ]
 
-              if vaccinated?
-                [ set inhalation-rate inhalation-rate * infectious-vaccinated-factor-teachers ]
+              set inhalation-rate inhalation-rate * infectious-vaccinated-factor-teachers
             ]
 
           if breed = principals
-            [
-              ifelse vaccinated?
-                [ set inhalation-rate inhalation-rate-principals * infectious-vaccinated-factor-principals ]
-                [ set inhalation-rate inhalation-rate-principals ]
-            ]
+            [ set inhalation-rate inhalation-rate-principals * infectious-vaccinated-factor-principals ]
 
-          if breed = janitors
-            [
-              ifelse vaccinated?
-                [ set inhalation-rate inhalation-rate-janitors * infectious-vaccinated-factor-janitors ]
-                [ set inhalation-rate inhalation-rate-janitors ]
-            ]
+          if breed = staff
+            [ set inhalation-rate inhalation-rate-staff * infectious-vaccinated-factor-staff ]
 
           if [classroom?] of patch-here
             [ set cumulative-quanta-inhaled-in-classroom cumulative-quanta-inhaled-in-classroom + has-people * inhalation-rate * dt * [cumulative-quanta-concentration] of myself ]
@@ -2586,7 +2435,7 @@ to compute-mean-quanta-inhaled-per-room
   if breed = principals
     [ set index 3 ]
 
-  if breed = janitors
+  if breed = staff
     [ set index 4 ]
 
   set num-active-agents replace-item 0 num-active-agents (item 0 num-active-agents + 1)
@@ -2616,7 +2465,6 @@ to accumulate-contact-with-infected
       [
         let contact-value matrix:get contact-time-with-infected-matrix-in-ticks who who-infected
 
-        ;Different cases: not vaccinated-not vaccinated, not vaccinated-vaccinated (or vaccinated-not vaccinated), vaccinated-vaccinated
         ifelse [vaccinated?] of myself or
                vaccinated?
           [ matrix:set contact-time-with-infected-matrix-in-ticks who who-infected ((contact-value + 1) * infectious-vaccinated-factor) ]
@@ -2676,78 +2524,26 @@ to verify-contact
 end
 
 to put-classroom-in-quarantine [c-name quarantine-ext-1? quarantine-ext-2?]
-  ask students with [ classroom = c-name and not quarantined? ]
+  ask students with [ classroom = c-name ]
     [
       set quarantined? true
       set quarantined-external-1? quarantine-ext-1?
       set quarantined-external-2? quarantine-ext-2?
 
-      update-put-in-quarantine-variables
-
-      set remain-quarantine-days num-of-quarantine-days
-
-      while [remain-incubation-days >= remain-quarantine-days]
-        [ set remain-incubation-days floor (remain-incubation-days / 2) ]
-    ]
-
-  set classrooms-in-quarantine lput c-name classrooms-in-quarantine
-end
-
-to put-student-in-quarantine [quarantine-ext-1? quarantine-ext-2?]
-  set quarantined? true
-  set quarantined-external-1? quarantine-ext-1?
-  set quarantined-external-2? quarantine-ext-2?
-
-  update-put-in-quarantine-variables
-
-  set remain-quarantine-days num-of-quarantine-days
-
-  while [remain-incubation-days >= remain-quarantine-days]
-    [ set remain-incubation-days floor (remain-incubation-days / 2) ]
-end
-
-to update-put-in-quarantine-variables
-  if susceptible?
-    [
-      ifelse vaccinated?
-      [
-        set num-vaccinated-susceptible num-vaccinated-susceptible - 1
-
-        ifelse quarantined-external-1?
-          [ set num-vaccinated-susceptible-in-quarantine-external-1 num-vaccinated-susceptible-in-quarantine-external-1 + 1 ]
-          [
-            ifelse quarantined-external-2?
-              [ set num-vaccinated-susceptible-in-quarantine-external-2 num-vaccinated-susceptible-in-quarantine-external-2 + 1 ]
-              [ set num-vaccinated-susceptible-in-quarantine num-vaccinated-susceptible-in-quarantine + 1 ]
-          ]
-      ]
-      [
-        set num-susceptible num-susceptible - 1
-
-        ifelse quarantined-external-1?
-          [ set num-susceptible-in-quarantine-external-1 num-susceptible-in-quarantine-external-1 + 1 ]
-          [
-            ifelse quarantined-external-2?
-              [ set num-susceptible-in-quarantine-external-2 num-susceptible-in-quarantine-external-2 + 1 ]
-              [ set num-susceptible-in-quarantine num-susceptible-in-quarantine + 1 ]
-          ]
-      ]
-    ]
-
-  if exposed?
-    [
-      ifelse vaccinated?
+      if susceptible?
         [
-          set num-vaccinated-exposed num-vaccinated-exposed - 1
+          set num-susceptible num-susceptible - 1
 
           ifelse quarantined-external-1?
-           [ set num-vaccinated-exposed-in-quarantine-external-1 num-vaccinated-exposed-in-quarantine-external-1 + 1 ]
+           [ set num-susceptible-in-quarantine-external-1 num-susceptible-in-quarantine-external-1 + 1 ]
            [
              ifelse quarantined-external-2?
-               [ set num-vaccinated-exposed-in-quarantine-external-2 num-vaccinated-exposed-in-quarantine-external-2 + 1 ]
-               [ set num-vaccinated-exposed-in-quarantine num-vaccinated-exposed-in-quarantine + 1 ]
+               [ set num-susceptible-in-quarantine-external-2 num-susceptible-in-quarantine-external-2 + 1 ]
+               [ set num-susceptible-in-quarantine num-susceptible-in-quarantine + 1 ]
            ]
         ]
+
+      if exposed?
         [
           set num-exposed num-exposed - 1
 
@@ -2759,22 +2555,8 @@ to update-put-in-quarantine-variables
                [ set num-exposed-in-quarantine num-exposed-in-quarantine + 1 ]
            ]
         ]
-    ]
 
-  if infected?
-    [
-      ifelse vaccinated?
-        [
-          set num-vaccinated-infected num-vaccinated-infected - 1
-
-          ifelse quarantined-external-1?
-           [ set num-vaccinated-infected-in-quarantine-external-1 num-vaccinated-infected-in-quarantine-external-1 + 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-vaccinated-infected-in-quarantine-external-2 num-vaccinated-infected-in-quarantine-external-2 + 1 ]
-               [ set num-vaccinated-infected-in-quarantine num-vaccinated-infected-in-quarantine + 1 ]
-           ]
-        ]
+      if infected?
         [
           set num-infected num-infected - 1
 
@@ -2786,22 +2568,8 @@ to update-put-in-quarantine-variables
                [ set num-infected-in-quarantine num-infected-in-quarantine + 1 ]
            ]
         ]
-    ]
 
-  if removed?
-    [
-      ifelse vaccinated?
-        [
-          set num-vaccinated-removed num-vaccinated-removed - 1
-
-          ifelse quarantined-external-1?
-           [ set num-vaccinated-removed-in-quarantine-external-1 num-vaccinated-removed-in-quarantine-external-1 + 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-vaccinated-removed-in-quarantine-external-2 num-vaccinated-removed-in-quarantine-external-2 + 1 ]
-               [ set num-vaccinated-removed-in-quarantine num-vaccinated-removed-in-quarantine + 1 ]
-           ]
-        ]
+      if removed?
         [
           set num-removed num-removed - 1
 
@@ -2813,30 +2581,25 @@ to update-put-in-quarantine-variables
                [ set num-removed-in-quarantine num-removed-in-quarantine + 1 ]
            ]
         ]
+
+      set remain-quarantine-days num-of-quarantine-days
+
+      while [remain-incubation-days >= remain-quarantine-days]
+        [ set remain-incubation-days floor (remain-incubation-days / 2) ]
     ]
+
+  set classrooms-in-quarantine lput c-name classrooms-in-quarantine
 end
 
 to get-infected [init-infected?]
   ifelse quarantined?
     [
-      ifelse vaccinated?
+      ifelse quarantined-external-1?
+        [ set num-susceptible-in-quarantine-external-1 num-susceptible-in-quarantine-external-1 - 1 ]
         [
-          ifelse quarantined-external-1?
-            [ set num-vaccinated-susceptible-in-quarantine-external-1 num-vaccinated-susceptible-in-quarantine-external-1 - 1 ]
-            [
-              ifelse quarantined-external-2?
-                [ set num-vaccinated-susceptible-in-quarantine-external-2 num-vaccinated-susceptible-in-quarantine-external-2 - 1 ]
-                [ set num-vaccinated-susceptible-in-quarantine num-vaccinated-susceptible-in-quarantine - 1 ]
-            ]
-        ]
-        [
-          ifelse quarantined-external-1?
-            [ set num-susceptible-in-quarantine-external-1 num-susceptible-in-quarantine-external-1 - 1 ]
-            [
-              ifelse quarantined-external-2?
-                [ set num-susceptible-in-quarantine-external-2 num-susceptible-in-quarantine-external-2 - 1 ]
-                [ set num-susceptible-in-quarantine num-susceptible-in-quarantine - 1 ]
-            ]
+          ifelse quarantined-external-2?
+            [ set num-susceptible-in-quarantine-external-2 num-susceptible-in-quarantine-external-2 - 1 ]
+            [ set num-susceptible-in-quarantine num-susceptible-in-quarantine - 1 ]
         ]
     ]
     [
@@ -2860,25 +2623,13 @@ to get-infected [init-infected?]
     [
       ifelse quarantined?
         [
-          ifelse vaccinated?
-           [
-             ifelse quarantined-external-1?
-                [ set num-vaccinated-exposed-in-quarantine-external-1 num-vaccinated-exposed-in-quarantine-external-1 + 1 ]
-                [
-                  ifelse quarantined-external-2?
-                    [ set num-vaccinated-exposed-in-quarantine-external-2 num-vaccinated-exposed-in-quarantine-external-2 + 1 ]
-                    [ set num-vaccinated-exposed-in-quarantine num-vaccinated-exposed-in-quarantine + 1 ]
-                ]
-           ]
-           [
-             ifelse quarantined-external-1?
-                [ set num-exposed-in-quarantine-external-1 num-exposed-in-quarantine-external-1 + 1 ]
-                [
-                  ifelse quarantined-external-2?
-                    [ set num-exposed-in-quarantine-external-2 num-exposed-in-quarantine-external-2 + 1 ]
-                    [ set num-exposed-in-quarantine num-exposed-in-quarantine + 1 ]
-                ]
-           ]
+          ifelse quarantined-external-1?
+            [ set num-exposed-in-quarantine-external-1 num-exposed-in-quarantine-external-1 + 1 ]
+            [
+              ifelse quarantined-external-2?
+                [ set num-exposed-in-quarantine-external-2 num-exposed-in-quarantine-external-2 + 1 ]
+                [ set num-exposed-in-quarantine num-exposed-in-quarantine + 1 ]
+            ]
         ]
         [
           ifelse vaccinated?
@@ -2897,6 +2648,154 @@ to get-infected [init-infected?]
   set remain-infected-days ceiling random-exponential mean-infection-duration-in-days
 end
 
+;to create-supply-teacher
+;  hatch-teachers 1
+;    [
+;      set color lime - 3
+;
+;      set hidden? true
+;
+;      set num-teachers num-teachers + 1
+;      set num-agents num-agents + 1
+;      set num-susceptible num-susceptible + 1
+;      set remain-infected-days 0
+;
+;      ifelse random 100 < prob-old-teachers * 100
+;        [ set age-group "Old" ]
+;        [ set age-group "Regular" ]
+;
+;      set queue 0
+;      set queue-position -1
+;
+;      set temperature-already-measured? false
+;
+;      set susceptible? true
+;      set exposed? false
+;      set infected? false
+;      set quarantined? false
+;      set supply? true
+;
+;      let next-classroom first item (day mod 5) personal-classrooms-scheduling
+;
+;      let staggered-condition next-classroom != "-"
+;
+;      ifelse staggered-admissions? and
+;             staggered-condition
+;        [
+;          let init-patch no-patches
+;
+;          ask one-of patches with [ outdoor? and room-name = next-classroom ]
+;            [ set init-patch one-of patches in-radius 5 ]
+;          setxy [pxcor] of init-patch [pycor] of init-patch
+;        ]
+;        [ setxy ((random max-pxcor / 4.5 + max-pxcor / 4 * 3)) random max-pycor / 2 ]
+;    ]
+;end
+;
+;to create-supply-staff
+;  hatch-staff 1
+;    [
+;      set color lime - 3
+;
+;      set hidden? true
+;
+;      set num-school-staff num-school-staff + 1
+;      set num-agents num-agents + 1
+;      set num-susceptible num-susceptible + 1
+;      set remain-infected-days 0
+;
+;      ifelse random 100 < prob-old-teachers * 100
+;        [ set age-group "Old" ]
+;        [ set age-group "Regular" ]
+;
+;      set queue 0
+;      set queue-position -1
+;
+;      set susceptible? true
+;      set exposed? false
+;      set infected? false
+;      set quarantined? false
+;      set supply? true
+;
+;      setxy ((random max-pxcor / 4.5 + max-pxcor / 4 * 3)) random max-pycor / 2
+;    ]
+;end
+;
+;to copy-teacher [supply-teacher infected-teacher-who]
+;  let infected-teacher teachers with [who = infected-teacher-who]
+;  let supply-desk desk
+;  let supply-classroom classroom
+;  let supply-floor-idx floor-idx
+;  let supply-staggered-group staggered-group
+;  let supply-gym-hour? gym-hour?
+;  let supply-targets targets
+;  let supply-gym-teacher? gym-teacher?
+;  let supply-teacher-idx teacher-idx
+;  let supply-personal-classrooms-scheduling personal-classrooms-scheduling
+;  let supply-day-scheduling day-scheduling
+;
+;
+;  ask teachers with [ who = supply-teacher ]
+;    [
+;      set queue 0
+;      set queue-position -1
+;
+;      set temperature-already-measured? false
+;
+;      set susceptible? true
+;      set exposed? false
+;      set infected? false
+;      set quarantined? false
+;      set supply? true
+;
+;      set desk supply-desk
+;      set classroom supply-classroom
+;      set floor-idx supply-floor-idx
+;
+;      set staggered-group supply-staggered-group
+;
+;      set gym-hour? supply-gym-hour?
+;
+;      set targets supply-targets
+;
+;      set gym-teacher? supply-gym-teacher?
+;
+;      set teacher-idx supply-teacher-idx
+;
+;      set personal-classrooms-scheduling supply-personal-classrooms-scheduling
+;      set day-scheduling supply-day-scheduling
+;    ]
+;end
+;
+;to copy-staff [supply-staff infected-staff-who]
+;  let infected-staff staff with [who = infected-staff-who]
+;  let supply-desk desk
+;  let supply-classroom classroom
+;  let supply-floor-idx floor-idx
+;  let supply-staggered-group staggered-group
+;  let supply-targets targets
+;
+;  ask staff with [ who = supply-staff ]
+;    [
+;      set queue 0
+;      set queue-position -1
+;
+;      set susceptible? true
+;      set exposed? false
+;      set infected? false
+;      set quarantined? false
+;      set supply? true
+;
+;      set desk supply-desk
+;      set classroom supply-classroom
+;      set floor-idx supply-floor-idx
+;
+;      set staggered-group supply-staggered-group
+;
+;      set targets supply-targets
+;    ]
+;end
+
 to update-infected
   ifelse exposed?
     [
@@ -2912,41 +2811,20 @@ to update-infected
 
           ifelse quarantined?
             [
-              ifelse vaccinated?
+              ifelse quarantined-external-1?
                 [
-                  ifelse quarantined-external-1?
-                    [
-                      set num-vaccinated-exposed-in-quarantine-external-1 num-vaccinated-exposed-in-quarantine-external-1 - 1
-                      set num-vaccinated-infected-in-quarantine-external-1 num-vaccinated-infected-in-quarantine-external-1 + 1
-                    ]
-                    [
-                      ifelse quarantined-external-2?
-                        [
-                          set num-vaccinated-exposed-in-quarantine-external-2 num-vaccinated-exposed-in-quarantine-external-2 - 1
-                          set num-vaccinated-infected-in-quarantine-external-2 num-vaccinated-infected-in-quarantine-external-2 + 1
-                        ]
-                        [
-                          set num-vaccinated-exposed-in-quarantine num-vaccinated-exposed-in-quarantine - 1
-                          set num-vaccinated-infected-in-quarantine num-vaccinated-infected-in-quarantine + 1
-                        ]
-                    ]
+                  set num-exposed-in-quarantine-external-1 num-exposed-in-quarantine-external-1 - 1
+                  set num-infected-in-quarantine-external-1 num-infected-in-quarantine-external-1 + 1
                 ]
                 [
-                  ifelse quarantined-external-1?
+                  ifelse quarantined-external-2?
                     [
-                      set num-exposed-in-quarantine-external-1 num-exposed-in-quarantine-external-1 - 1
-                      set num-infected-in-quarantine-external-1 num-infected-in-quarantine-external-1 + 1
+                      set num-exposed-in-quarantine-external-2 num-exposed-in-quarantine-external-2 - 1
+                      set num-infected-in-quarantine-external-2 num-infected-in-quarantine-external-2 + 1
                     ]
                     [
-                      ifelse quarantined-external-2?
-                        [
-                          set num-exposed-in-quarantine-external-2 num-exposed-in-quarantine-external-2 - 1
-                          set num-infected-in-quarantine-external-2 num-infected-in-quarantine-external-2 + 1
-                        ]
-                        [
-                          set num-exposed-in-quarantine num-exposed-in-quarantine - 1
-                          set num-infected-in-quarantine num-infected-in-quarantine + 1
-                        ]
+                      set num-exposed-in-quarantine num-exposed-in-quarantine - 1
+                      set num-infected-in-quarantine num-infected-in-quarantine + 1
                     ]
                 ]
             ]
@@ -2973,41 +2851,20 @@ to get-removed
     [
       ifelse quarantined?
         [
-          ifelse vaccinated?
+          ifelse quarantined-external-1?
             [
-              ifelse quarantined-external-1?
-                [
-                  set num-vaccinated-infected-in-quarantine-external-1 num-vaccinated-infected-in-quarantine-external-1 - 1
-                  set num-vaccinated-removed-in-quarantine-external-1 num-vaccinated-removed-in-quarantine-external-1 + 1
-                ]
-                [
-                  ifelse quarantined-external-2?
-                    [
-                      set num-vaccinated-infected-in-quarantine-external-2 num-vaccinated-infected-in-quarantine-external-2 - 1
-                      set num-vaccinated-removed-in-quarantine-external-2 num-vaccinated-removed-in-quarantine-external-2 + 1
-                    ]
-                    [
-                      set num-vaccinated-infected-in-quarantine num-vaccinated-infected-in-quarantine - 1
-                      set num-vaccinated-removed-in-quarantine num-vaccinated-removed-in-quarantine + 1
-                    ]
-                ]
+              set num-infected-in-quarantine-external-1 num-infected-in-quarantine-external-1 - 1
+              set num-removed-in-quarantine-external-1 num-removed-in-quarantine-external-1 + 1
             ]
             [
-              ifelse quarantined-external-1?
+              ifelse quarantined-external-2?
                 [
-                  set num-infected-in-quarantine-external-1 num-infected-in-quarantine-external-1 - 1
-                  set num-removed-in-quarantine-external-1 num-removed-in-quarantine-external-1 + 1
+                  set num-infected-in-quarantine-external-2 num-infected-in-quarantine-external-2 - 1
+                  set num-removed-in-quarantine-external-2 num-removed-in-quarantine-external-2 + 1
                 ]
                 [
-                  ifelse quarantined-external-2?
-                    [
-                      set num-infected-in-quarantine-external-2 num-infected-in-quarantine-external-2 - 1
-                      set num-removed-in-quarantine-external-2 num-removed-in-quarantine-external-2 + 1
-                    ]
-                    [
-                      set num-infected-in-quarantine num-infected-in-quarantine - 1
-                      set num-removed-in-quarantine num-removed-in-quarantine + 1
-                    ]
+                  set num-infected-in-quarantine num-infected-in-quarantine - 1
+                  set num-removed-in-quarantine num-removed-in-quarantine + 1
                 ]
             ]
         ]
@@ -3034,110 +2891,54 @@ end
 to remove-from-quarantine
   if susceptible?
     [
-      ifelse vaccinated?
-        [
-          set num-vaccinated-susceptible num-vaccinated-susceptible + 1
+      set num-susceptible num-susceptible + 1
 
-          ifelse quarantined-external-1?
-           [ set num-vaccinated-susceptible-in-quarantine-external-1 num-vaccinated-susceptible-in-quarantine-external-1 - 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-vaccinated-susceptible-in-quarantine-external-2 num-vaccinated-susceptible-in-quarantine-external-2 - 1 ]
-               [ set num-vaccinated-susceptible-in-quarantine num-vaccinated-susceptible-in-quarantine - 1 ]
-           ]
-        ]
-        [
-          set num-susceptible num-susceptible + 1
-
-          ifelse quarantined-external-1?
-           [ set num-susceptible-in-quarantine-external-1 num-susceptible-in-quarantine-external-1 - 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-susceptible-in-quarantine-external-2 num-susceptible-in-quarantine-external-2 - 1 ]
-               [ set num-susceptible-in-quarantine num-susceptible-in-quarantine - 1 ]
-           ]
-        ]
+      ifelse quarantined-external-1?
+       [ set num-susceptible-in-quarantine-external-1 num-susceptible-in-quarantine-external-1 - 1 ]
+       [
+         ifelse quarantined-external-2?
+           [ set num-susceptible-in-quarantine-external-2 num-susceptible-in-quarantine-external-2 - 1 ]
+           [ set num-susceptible-in-quarantine num-susceptible-in-quarantine - 1 ]
+       ]
     ]
 
   if exposed?
     [
-      ifelse vaccinated?
-        [
-          set num-vaccinated-exposed num-vaccinated-exposed + 1
+      set num-exposed num-exposed + 1
 
-          ifelse quarantined-external-1?
-           [ set num-vaccinated-exposed-in-quarantine-external-1 num-vaccinated-exposed-in-quarantine-external-1 - 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-vaccinated-exposed-in-quarantine-external-2 num-vaccinated-exposed-in-quarantine-external-2 - 1 ]
-               [ set num-vaccinated-exposed-in-quarantine num-vaccinated-exposed-in-quarantine - 1 ]
-           ]
-        ]
-        [
-          set num-exposed num-exposed + 1
-
-          ifelse quarantined-external-1?
-           [ set num-exposed-in-quarantine-external-1 num-exposed-in-quarantine-external-1 - 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-exposed-in-quarantine-external-2 num-exposed-in-quarantine-external-2 - 1 ]
-               [ set num-exposed-in-quarantine num-exposed-in-quarantine - 1 ]
-           ]
-        ]
+      ifelse quarantined-external-1?
+       [ set num-exposed-in-quarantine-external-1 num-exposed-in-quarantine-external-1 - 1 ]
+       [
+         ifelse quarantined-external-2?
+           [ set num-exposed-in-quarantine-external-2 num-exposed-in-quarantine-external-2 - 1 ]
+           [ set num-exposed-in-quarantine num-exposed-in-quarantine - 1 ]
+       ]
     ]
 
   if infected?
     [
-      ifelse vaccinated?
-        [
-          set num-vaccinated-infected num-vaccinated-infected + 1
+      set num-infected num-infected + 1
 
-          ifelse quarantined-external-1?
-           [ set num-vaccinated-infected-in-quarantine-external-1 num-vaccinated-infected-in-quarantine-external-1 - 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-vaccinated-infected-in-quarantine-external-2 num-vaccinated-infected-in-quarantine-external-2 - 1 ]
-               [ set num-vaccinated-infected-in-quarantine num-vaccinated-infected-in-quarantine - 1 ]
-           ]
-        ]
-        [
-          set num-infected num-infected + 1
-
-          ifelse quarantined-external-1?
-           [ set num-infected-in-quarantine-external-1 num-infected-in-quarantine-external-1 - 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-infected-in-quarantine-external-2 num-infected-in-quarantine-external-2 - 1 ]
-               [ set num-infected-in-quarantine num-infected-in-quarantine - 1 ]
-           ]
-        ]
+      ifelse quarantined-external-1?
+       [ set num-infected-in-quarantine-external-1 num-infected-in-quarantine-external-1 - 1 ]
+       [
+         ifelse quarantined-external-2?
+           [ set num-infected-in-quarantine-external-2 num-infected-in-quarantine-external-2 - 1 ]
+           [ set num-infected-in-quarantine num-infected-in-quarantine - 1 ]
+       ]
     ]
 
   if removed?
     [
-      ifelse vaccinated?
-        [
-          set num-vaccinated-removed num-vaccinated-removed + 1
+      set num-removed num-removed + 1
 
-          ifelse quarantined-external-1?
-           [ set num-vaccinated-removed-in-quarantine-external-1 num-vaccinated-removed-in-quarantine-external-1 - 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-vaccinated-removed-in-quarantine-external-2 num-vaccinated-removed-in-quarantine-external-2 - 1 ]
-               [ set num-vaccinated-removed-in-quarantine num-vaccinated-removed-in-quarantine - 1 ]
-           ]
-        ]
-        [
-          set num-removed num-removed + 1
-
-          ifelse quarantined-external-1?
-           [ set num-removed-in-quarantine-external-1 num-removed-in-quarantine-external-1 - 1 ]
-           [
-             ifelse quarantined-external-2?
-               [ set num-removed-in-quarantine-external-2 num-removed-in-quarantine-external-2 - 1 ]
-               [ set num-removed-in-quarantine num-removed-in-quarantine - 1 ]
-           ]
-        ]
+      ifelse quarantined-external-1?
+       [ set num-removed-in-quarantine-external-1 num-removed-in-quarantine-external-1 - 1 ]
+       [
+         ifelse quarantined-external-2?
+           [ set num-removed-in-quarantine-external-2 num-removed-in-quarantine-external-2 - 1 ]
+           [ set num-removed-in-quarantine num-removed-in-quarantine - 1 ]
+       ]
     ]
 
   if remain-infected-days > 0
@@ -3160,6 +2961,20 @@ to remove-from-quarantine
   if not empty? classrooms-in-quarantine and
      position classroom classrooms-in-quarantine != false
     [ set classrooms-in-quarantine remove classroom classrooms-in-quarantine ]
+end
+
+to reset-supply-teacher
+  set classroom "-"
+  set floor-idx 1
+
+  set staggered-group -2
+
+  set gym-hour? false
+
+  set teacher-idx -1
+
+  set personal-classrooms-scheduling []
+  set day-scheduling []
 end
 
 to outside-contagion
@@ -3216,6 +3031,22 @@ to update-temperature-measurement-targets
   face first targets
 end
 
+to setup-initial-targets
+  set targets lput (one-of patches with [ entrance? and outdoor? ]) []
+
+  if floor-idx > 1
+    [ set targets lput (one-of patches with [ stair? and floor-number = 1 ]) targets ]
+
+  set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
+  set targets lput desk targets
+
+  if gym-hour? or
+     (breed = teachers and gym-teacher?)
+    [ go-gym-single-agent ]
+
+  face first targets
+end
+
 to setup-after-measurement-targets
   ifelse quarantined?
     [
@@ -3253,22 +3084,6 @@ to setup-after-measurement-targets
          (breed = teachers and gym-teacher?)
         [ go-gym-single-agent ]
     ]
-
-  face first targets
-end
-
-to setup-initial-targets
-  set targets lput (one-of patches with [ entrance? and outdoor? ]) []
-
-  if floor-idx > 1
-    [ set targets lput (one-of patches with [ stair? and floor-number = 1 ]) targets ]
-
-  set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
-  set targets lput desk targets
-
-  if gym-hour? or
-     (breed = teachers and gym-teacher?)
-    [ go-gym-single-agent ]
 
   face first targets
 end
@@ -3312,16 +3127,6 @@ to go-to-teachers-room-from-gym
   face first targets
 end
 
-to return-from-gym
-  set targets lput one-of patches with [ entrance? and gym? ] targets
-  set floor-idx get-floor-by-classroom classroom
-  if floor-idx > 1
-    [ set targets lput one-of patches with [ stair? and floor-number = 1 ] targets ]
-  set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
-  set targets lput desk targets
-  face first targets
-end
-
 to go-to-corridor
   set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
 
@@ -3338,89 +3143,13 @@ to return-from-corridor
   face first targets
 end
 
-to go-to-blackboard [blackboard-patches]
-  set targets lput one-of blackboard-patches targets
-  set blackboard-time-in-ticks (random-exponential 5) * (60 / tick-duration-in-seconds)
-  face first targets
-end
-
-to return-from-blackboard
-  set targets lput desk targets
-  face first targets
-end
-
-to go-to-bathroom [bathroom-floor bathroom-name]
-  set toilet "Wait"
-
-  if classroom?
-    [ set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets ]
-
-  if gym-hour?
-    [ set targets lput one-of patches with [ entrance? and gym? ] targets ]
-
-  if breed != students and floor-idx > 1
-    [ set targets lput one-of patches with [ stair? and floor-number = [floor-idx] of myself ] targets ]
-
-  set targets lput one-of patches with [ entrance? and floor-number = bathroom-floor and room-name = bathroom-name ] targets
-  set targets lput one-of patches with [ floor-number = bathroom-floor and room-name = bathroom-name and not toilet? ] targets
-  face first targets
-end
-
-to go-to-toilet [bathrooms-floor ]
-  set toilet one-of bathrooms-floor
-  set targets lput toilet targets
-  set toilet-time-in-ticks (random-exponential 5) * (60 / tick-duration-in-seconds)
-  ask toilet [ set occupied? true ]
-  face first targets
-end
-
-to return-from-bathroom [bathroom-floor bathroom-name]
-  ask toilet [ set occupied? false ]
-  set targets lput one-of patches with [ entrance? and floor-number = bathroom-floor and room-name = bathroom-name ] targets
-
-  ifelse gym-hour?
-    [
-      set targets lput one-of patches with [ entrance? and gym? ] targets
-      set targets lput one-of patches with [ gym? ] targets
-    ]
-    [
-      set floor-idx get-floor-by-classroom classroom
-
-      if breed != students and floor-idx > 1
-        [ set targets lput one-of patches with [ stair? and floor-number = 1 ] targets ]
-
-      set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
-      set targets lput desk targets
-    ]
-
-  set toilet []
-  face first targets
-end
-
-to go-to-principal [g principal-patches]
-  set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
-
-  if floor-idx > 1
-    [ set targets lput one-of patches with [ stair? and floor-number = [floor-idx] of myself ] targets ]
-
-  set floor-idx 1
-  set targets lput one-of patches with [ entrance? and principal-office? ] targets
-  set targets lput one-of principal-patches targets
-  set principal-time-in-ticks item g remain-time-for-lesson-in-ticks
-  ask last targets [ set occupied? true ]
-  face first targets
-end
-
-to return-from-principal
-  set targets lput one-of patches with [ entrance? and principal-office? ] targets
+to return-from-gym
+  set targets lput one-of patches with [ entrance? and gym? ] targets
   set floor-idx get-floor-by-classroom classroom
-
   if floor-idx > 1
     [ set targets lput one-of patches with [ stair? and floor-number = 1 ] targets ]
-
   set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
   set targets lput desk targets
-  ask patch-here [ set occupied? false ]
   face first targets
 end
 
@@ -3463,395 +3192,90 @@ to set-targets-end-school
   face first targets
 end
 
-;Utilities
-to read-file-classrooms-scheduling-and-gym-teachers
-  let line []
+to go-to-blackboard [blackboard-patches]
+  set targets lput one-of blackboard-patches targets
+  set blackboard-time-in-ticks (random-exponential 5) * (60 / tick-duration-in-seconds)
+  face first targets
+end
 
-  ifelse staggered-admissions?
-    [ file-open "Utils/StaggeredClassroomsScheduling.txt" ]
-    [ file-open "Utils/ClassroomsScheduling.txt" ]
+to return-from-blackboard
+  set targets lput desk targets
+  face first targets
+end
 
-  set classrooms-scheduling []
+to go-to-bathroom [bathroom-floor bathroom-name]
+  set toilet "Wait"
 
-  while [not file-at-end?]
+  if classroom?
+    [ set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets ]
+
+  if gym-hour?
+    [ set targets lput one-of patches with [ entrance? and gym? ] targets ]
+
+  if breed != students and floor-idx > 1
+    [ set targets lput one-of patches with [ stair? and floor-number = [floor-idx] of myself ] targets ]
+
+  set targets lput one-of patches with [ entrance? and floor-number = bathroom-floor and room-name = bathroom-name ] targets
+  set targets lput one-of patches with [ floor-number = bathroom-floor and room-name = bathroom-name and not toilet? ] targets
+  face first targets
+end
+
+to return-from-bathroom [bathroom-floor bathroom-name]
+  ask toilet [ set occupied? false ]
+  set targets lput one-of patches with [ entrance? and floor-number = bathroom-floor and room-name = bathroom-name ] targets
+
+  ifelse gym-hour?
     [
-      set line file-read
-      set classrooms-scheduling lput line classrooms-scheduling
+      set targets lput one-of patches with [ entrance? and gym? ] targets
+      set targets lput one-of patches with [ gym? ] targets
+    ]
+    [
+      set floor-idx get-floor-by-classroom classroom
+
+      if breed != students and floor-idx > 1
+        [ set targets lput one-of patches with [ stair? and floor-number = 1 ] targets ]
+
+      set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
+      set targets lput desk targets
     ]
 
-  file-close
-
-
-  file-open "Utils/GymTeachers.txt"
-
-  set gym-teachers []
-
-  while [not file-at-end?]
-    [ set gym-teachers lput file-read gym-teachers ]
-
-  file-close
+  set toilet []
+  face first targets
 end
 
-to-report get-x-desks [starting-classroom-x]
-  ifelse students-per-classroom <= 18
-    [ report (list (starting-classroom-x + 3) (starting-classroom-x + 6) (starting-classroom-x + 9)) ]
-    [ report (list (starting-classroom-x + 3) (starting-classroom-x + 5) (starting-classroom-x + 7) (starting-classroom-x + 9)) ]
+to go-to-toilet [bathrooms-floor ]
+  set toilet one-of bathrooms-floor
+  set targets lput toilet targets
+  set toilet-time-in-ticks (random-exponential 5) * (60 / tick-duration-in-seconds)
+  ask toilet [ set occupied? true ]
+  face first targets
 end
 
-to-report get-x-chairs [starting-classroom-x]
-  ifelse students-per-classroom <= 18
-    [ report (list (starting-classroom-x + 4) (starting-classroom-x + 7) (starting-classroom-x + 10)) ]
-    [ report (list (starting-classroom-x + 4) (starting-classroom-x + 6) (starting-classroom-x + 8) (starting-classroom-x + 10)) ]
-end
+to go-to-principal [g principal-patches]
+  set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
 
-to-report get-num-teachers
-  let maximum 0
+  if floor-idx > 1
+    [ set targets lput one-of patches with [ stair? and floor-number = [floor-idx] of myself ] targets ]
 
-  set effective-classrooms-scheduling []
-  set effective-teachers-flat []
-
-  foreach classrooms-scheduling
-    [
-      class -> if one-of patches with [room-name = first class] != nobody
-                 [ set effective-classrooms-scheduling lput class effective-classrooms-scheduling ]
-    ]
-
-  let effective-classrooms-scheduling-flat []
-
-  foreach effective-classrooms-scheduling
-    [
-      class -> foreach but-first class
-                 [
-                   sday -> foreach sday [ lesson -> set effective-classrooms-scheduling-flat lput lesson effective-classrooms-scheduling-flat ]
-                 ]
-    ]
-
-  set effective-teachers-flat remove-duplicates effective-classrooms-scheduling-flat
-
-  report length effective-teachers-flat
-end
-
-to create-personal-classrooms-scheduling
-  let name ""
-  let day-num 0
-  let lesson-num 0
-
-  foreach effective-classrooms-scheduling
-    [
-      class -> set name first class
-               set day-num 0
-
-               foreach but-first class
-                 [
-                   sday -> set lesson-num 0
-
-                           foreach sday
-                             [
-                               lesson -> ask teachers with [ teacher-idx = lesson ]
-                                           [
-                                             ifelse num-groups = 2 and [staggered-group] of one-of students with [ classroom = name ] = 1
-                                               [ set personal-classrooms-scheduling replace-item day-num personal-classrooms-scheduling (replace-item (lesson-num + 1) (item day-num personal-classrooms-scheduling) name) ]
-                                               [ set personal-classrooms-scheduling replace-item day-num personal-classrooms-scheduling (replace-item lesson-num (item day-num personal-classrooms-scheduling) name) ]
-                                           ]
-
-                                         set lesson-num lesson-num + 1
-                             ]
-
-                           set day-num day-num + 1
-                 ]
-    ]
-
-  let lesson ""
-  let other-lesson-num 0
-
-  ask teachers
-    [
-      set day-num 0
-      foreach personal-classrooms-scheduling
-        [
-          sday -> set lesson-num 0
-                  while [lesson-num < length sday]
-                    [
-                      set lesson item lesson-num sday
-
-                      if lesson != "-"
-                        [
-                          set other-lesson-num lesson-num + 1
-
-                          while [other-lesson-num < length sday and
-                                 item other-lesson-num sday = "-"]
-                            [ set other-lesson-num other-lesson-num  + 1 ]
-
-                          if other-lesson-num < length sday and
-                             other-lesson-num > lesson-num + 1
-                            [
-                              while [(lesson-num + 1) < other-lesson-num]
-                                [
-                                  set personal-classrooms-scheduling replace-item day-num personal-classrooms-scheduling (replace-item (lesson-num + 1) (item day-num personal-classrooms-scheduling) "TR")
-                                  set lesson-num lesson-num + 1
-                                ]
-                            ]
-
-                        ]
-
-                      set lesson-num lesson-num + 1
-                    ]
-
-                  set day-num day-num + 1
-
-                  if first-day-of-work = 0 and
-                     remove "-" (item (day-num - 1) personal-classrooms-scheduling) != []
-                    [ set first-day-of-work day-num ]
-        ]
-    ]
-
-
-  ask teachers with [ member? teacher-idx gym-teachers ]
-    [ set gym-teacher? true ]
-end
-
-to-report get-floor-by-classroom [name]
-  let idx 1
-
-  if first name = "2"
-    [ set idx 2 ]
-
-  if first name = "3"
-    [ set idx 3 ]
-
-  report idx
-end
-
-to-report final-time
-  let final-hour 13
-  let final-minute 40
-
-  if lesson-duration-in-minutes = 60
-    [
-      set final-hour 14
-      set final-minute 40
-    ]
-
-  if staggered-admissions?
-    [
-      ifelse lesson-duration-in-minutes = 60
-      [
-        set final-hour 15
-        set final-minute 40
-      ]
-      [
-        set final-hour 14
-        set final-minute 30
-      ]
-    ]
-
-  report list final-hour final-minute
-end
-
-to-report stop-day
-  let ft final-time
-  let final-hour first ft
-  let final-minute last ft
-
-  report hour = final-hour and minute = final-minute and count turtles with [ not hidden? and cumulative-quanta-inhaled != 0 ] = 0
-end
-
-to-report get-num-days
-  let num-days 1
-
-  if school-day != 0 and
-     school-day mod 5 = 0
-    [
-       set weekend? true
-       set num-days 3
-    ]
-	
-	report num-days
-end
-
-to reset-school-clock
-  set day day + 1
-  set hour starting-hour
-  set minute starting-minute
-  set second starting-second
-end
-
-to update-school-clock
-  if second >= 60 - tick-duration-in-seconds
-    [
-      if minute = 59
-        [ set hour hour + 1 ]
-
-      set minute (minute + 1) mod 60
-    ]
-
-  set second (second + tick-duration-in-seconds) mod 60
-end
-
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
-;to create-supply-teacher
-;  hatch-teachers 1
-;    [
-;      set color lime - 3
-;
-;      set hidden? true
-;
-;      set num-teachers num-teachers + 1
-;      set num-agents num-agents + 1
-;      set num-susceptible num-susceptible + 1
-;      set remain-infected-days 0
-;
-;      ifelse random 100 < prob-old-teachers * 100
-;        [ set age-group "Old" ]
-;        [ set age-group "Regular" ]
-;
-;      set queue 0
-;      set queue-position -1
-;
-;      set temperature-already-measured? false
-;
-;      set susceptible? true
-;      set exposed? false
-;      set infected? false
-;      set quarantined? false
-;      set supply? true
-;
-;      let next-classroom first item (day mod 5) personal-classrooms-scheduling
-;
-;      let staggered-condition next-classroom != "-"
-;
-;      ifelse staggered-admissions? and
-;             staggered-condition
-;        [
-;          let init-patch no-patches
-;
-;          ask one-of patches with [ outdoor? and room-name = next-classroom ]
-;            [ set init-patch one-of patches in-radius 5 ]
-;          setxy [pxcor] of init-patch [pycor] of init-patch
-;        ]
-;        [ setxy ((random max-pxcor / 4.5 + max-pxcor / 4 * 3)) random max-pycor / 2 ]
-;    ]
-;end
-;
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
-;to create-supply-janitors
-;  hatch-janitors 1
-;    [
-;      set color lime - 3
-;
-;      set hidden? true
-;
-;      set num-school-janitors num-school-janitors + 1
-;      set num-agents num-agents + 1
-;      set num-susceptible num-susceptible + 1
-;      set remain-infected-days 0
-;
-;      ifelse random 100 < prob-old-teachers * 100
-;        [ set age-group "Old" ]
-;        [ set age-group "Regular" ]
-;
-;      set queue 0
-;      set queue-position -1
-;
-;      set susceptible? true
-;      set exposed? false
-;      set infected? false
-;      set quarantined? false
-;      set supply? true
-;
-;      setxy ((random max-pxcor / 4.5 + max-pxcor / 4 * 3)) random max-pycor / 2
-;    ]
-;end
-;
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
-;to copy-teacher [supply-teacher infected-teacher-who]
-;  let infected-teacher teachers with [who = infected-teacher-who]
-;  let supply-desk desk
-;  let supply-classroom classroom
-;  let supply-floor-idx floor-idx
-;  let supply-staggered-group staggered-group
-;  let supply-gym-hour? gym-hour?
-;  let supply-targets targets
-;  let supply-gym-teacher? gym-teacher?
-;  let supply-teacher-idx teacher-idx
-;  let supply-personal-classrooms-scheduling personal-classrooms-scheduling
-;  let supply-day-scheduling day-scheduling
-;
-;
-;  ask teachers with [ who = supply-teacher ]
-;    [
-;      set queue 0
-;      set queue-position -1
-;
-;      set temperature-already-measured? false
-;
-;      set susceptible? true
-;      set exposed? false
-;      set infected? false
-;      set quarantined? false
-;      set supply? true
-;
-;      set desk supply-desk
-;      set classroom supply-classroom
-;      set floor-idx supply-floor-idx
-;
-;      set staggered-group supply-staggered-group
-;
-;      set gym-hour? supply-gym-hour?
-;
-;      set targets supply-targets
-;
-;      set gym-teacher? supply-gym-teacher?
-;
-;      set teacher-idx supply-teacher-idx
-;
-;      set personal-classrooms-scheduling supply-personal-classrooms-scheduling
-;      set day-scheduling supply-day-scheduling
-;    ]
-;end
-;
-;THIS FUNCTION NEED A REVIEW IF NEEDED!
-;to copy-janitors [supply-janitors infected-janitors-who]
-;  let infected-janitors janitors with [who = infected-janitors-who]
-;  let supply-desk desk
-;  let supply-classroom classroom
-;  let supply-floor-idx floor-idx
-;  let supply-staggered-group staggered-group
-;  let supply-targets targets
-;
-;  ask janitors with [ who = supply-janitors ]
-;    [
-;      set queue 0
-;      set queue-position -1
-;
-;      set susceptible? true
-;      set exposed? false
-;      set infected? false
-;      set quarantined? false
-;      set supply? true
-;
-;      set desk supply-desk
-;      set classroom supply-classroom
-;      set floor-idx supply-floor-idx
-;
-;      set staggered-group supply-staggered-group
-;
-;      set targets supply-targets
-;    ]
-;end
-
-to reset-supply-teacher
-  set classroom "-"
   set floor-idx 1
+  set targets lput one-of patches with [ entrance? and principal-office? ] targets
+  set targets lput one-of principal-patches targets
+  set principal-time-in-ticks item g remain-time-for-lesson-in-ticks
+  ask last targets [ set occupied? true ]
+  face first targets
+end
 
-  set staggered-group -2
+to return-from-principal
+  set targets lput one-of patches with [ entrance? and principal-office? ] targets
+  set floor-idx get-floor-by-classroom classroom
 
-  set gym-hour? false
+  if floor-idx > 1
+    [ set targets lput one-of patches with [ stair? and floor-number = 1 ] targets ]
 
-  set teacher-idx -1
-
-  set personal-classrooms-scheduling []
-  set day-scheduling []
+  set targets lput one-of patches with [ entrance? and room-name = [classroom] of myself ] targets
+  set targets lput desk targets
+  ask patch-here [ set occupied? false ]
+  face first targets
 end
 
 ;Print function
@@ -3861,35 +3285,10 @@ to print-day-results
       file-open word (word (word results-dir-name "/result") seedRun) ".txt"
 
       if day = 0
-        [ file-print (word "day\tseedRun\tsusceptible\texposed\tinfected\tremoved\t"
-                      "susceptible-in-quarantine\texposed-in-quarantine\tinfected-in-quarantine\tremoved-in-quarantine\t"
-                      "susceptible-in-quarantine-external-1\texposed-in-quarantine-external-1\tinfected-in-quarantine-external-1\tremoved-in-quarantine-external-1\t"
-                      "susceptible-in-quarantine-external-2\texposed-in-quarantine-external-2\tinfected-in-quarantine-external-2\tremoved-in-quarantine-external-2\t"
-                      "num-of-screened-students\tnum-of-screened-students-external-1\tnum-of-screened-students-external-2\t"
-                      "num-of-positive-students\tnum-of-positive-students-external-1\tnum-of-positive-students-external-2\t"
-                      "num-vaccinated-susceptible\tnum-vaccinated-exposed\tnum-vaccinated-infected\tnum-vaccinated-removed\t"
-                      "num-vaccinated-susceptible-in-quarantine\tnum-vaccinated-exposed-in-quarantine\tnum-vaccinated-infected-in-quarantine\tnum-vaccinated-removed-in-quarantine\t"
-                      "num-vaccinated-susceptible-in-quarantine-external-1\tnum-vaccinated-exposed-in-quarantine-external-1\tnum-vaccinated-infected-in-quarantine-external-1\tnum-vaccinated-removed-in-quarantine-external-1\t"
-                      "num-vaccinated-susceptible-in-quarantine-external-2\tnum-vaccinated-exposed-in-quarantine-external-2\tnum-vaccinated-infected-in-quarantine-external-2\tnum-vaccinated-removed-in-quarantine-external-2\t"
-                      "num-infected-outside\tclassroom-in-quarantine\tnum-of-classroom-in-quarantine\tclassroom-with-at-least-one-infected") ]
-      let classroom-with-at-least-one-infected count patches with [ entrance? and member? room-name classroom-name and count students with [ infected? and classroom = [room-name] of myself ] > 0 ]
+        [ file-print "day\tseedRun\tsusceptible\texposed\tinfected\tremoved\tsusceptible-in-quarantine\texposed-in-quarantine\tinfected-in-quarantine\tremoved-in-quarantine\tsusceptible-in-quarantine-external-1\texposed-in-quarantine-external-1\tinfected-in-quarantine-external-1\tremoved-in-quarantine-external-1\tsusceptible-in-quarantine-external-2\texposed-in-quarantine-external-2\tinfected-in-quarantine-external-2\tremoved-in-quarantine-external-2\tnum-of-screened-students\tnum-of-screened-students-external-1\tnum-of-screened-students-external-2\tnum-of-positive-students\tnum-of-positive-students-external-1\tnum-of-positive-students-external-2\tnum-vaccinated-susceptible\tnum-vaccinated-exposed\tnum-vaccinated-infected\tnum-vaccinated-removed\tnum-infected-outside\tclassroom-in-quarantine\tnum-of-classroom-in-quarantine\tclassroom-with-at-least-one-infected" ]
+      let classroom-with-at-least-one-infected count patches with [ entrance? and member? room-name classroom-name and count turtles with [ infected? and classroom = [room-name] of myself ] > 0 ]
 
-      file-type day file-type "\t" file-type seedRun file-type "\t" file-type num-susceptible file-type "\t" file-type num-exposed file-type "\t" file-type num-infected file-type "\t" file-type num-removed file-type "\t"
-      file-type num-susceptible-in-quarantine file-type "\t" file-type num-exposed-in-quarantine file-type "\t" file-type num-infected-in-quarantine file-type "\t" file-type num-removed-in-quarantine file-type "\t"
-      file-type num-susceptible-in-quarantine-external-1 file-type "\t" file-type num-exposed-in-quarantine-external-1 file-type "\t"
-      file-type num-infected-in-quarantine-external-1 file-type "\t" file-type num-removed-in-quarantine-external-1 file-type "\t"
-      file-type num-susceptible-in-quarantine-external-2 file-type "\t" file-type num-exposed-in-quarantine-external-2 file-type "\t"
-      file-type num-infected-in-quarantine-external-2 file-type "\t" file-type num-removed-in-quarantine-external-2 file-type "\t"
-      file-type num-of-screened-students file-type "\t" file-type num-of-screened-students-external-1 file-type "\t" file-type num-of-screened-students-external-2 file-type "\t"
-      file-type num-of-positive-students file-type "\t" file-type num-of-positive-students-external-1 file-type "\t" file-type num-of-positive-students-external-2 file-type "\t"
-      file-type num-vaccinated-susceptible file-type "\t" file-type num-vaccinated-exposed file-type "\t" file-type num-vaccinated-infected file-type "\t" file-type num-vaccinated-removed file-type "\t"
-      file-type num-vaccinated-susceptible-in-quarantine file-type "\t" file-type num-vaccinated-exposed-in-quarantine file-type "\t"
-      file-type num-vaccinated-infected-in-quarantine file-type "\t" file-type num-vaccinated-removed-in-quarantine file-type "\t"
-      file-type num-vaccinated-susceptible-in-quarantine-external-1 file-type "\t" file-type num-vaccinated-exposed-in-quarantine-external-1 file-type "\t"
-      file-type num-vaccinated-infected-in-quarantine-external-1 file-type "\t" file-type num-vaccinated-removed-in-quarantine-external-1 file-type "\t"
-      file-type num-vaccinated-susceptible-in-quarantine-external-2 file-type "\t" file-type num-vaccinated-exposed-in-quarantine-external-2 file-type "\t"
-      file-type num-vaccinated-infected-in-quarantine-external-2 file-type "\t" file-type num-vaccinated-removed-in-quarantine-external-2 file-type "\t"
-      file-type num-infected-outside file-type "\t" file-type classrooms-in-quarantine file-type "\t" file-type length classrooms-in-quarantine file-type "\t" file-print classroom-with-at-least-one-infected
+      file-type day file-type "\t" file-type seedRun file-type "\t" file-type num-susceptible file-type "\t" file-type num-exposed file-type "\t" file-type num-infected file-type "\t" file-type num-removed file-type "\t" file-type num-susceptible-in-quarantine file-type "\t" file-type num-exposed-in-quarantine file-type "\t" file-type num-infected-in-quarantine file-type "\t" file-type num-removed-in-quarantine file-type "\t" file-type num-susceptible-in-quarantine-external-1 file-type "\t" file-type num-exposed-in-quarantine-external-1 file-type "\t" file-type num-infected-in-quarantine-external-1 file-type "\t" file-type num-removed-in-quarantine-external-1 file-type "\t" file-type num-susceptible-in-quarantine-external-2 file-type "\t" file-type num-exposed-in-quarantine-external-2 file-type "\t" file-type num-infected-in-quarantine-external-2 file-type "\t" file-type num-removed-in-quarantine-external-2 file-type "\t" file-type num-of-screened-students file-type "\t" file-type num-of-screened-students-external-1 file-type "\t" file-type num-of-screened-students-external-2 file-type "\t" file-type num-of-positive-students file-type "\t" file-type num-of-positive-students-external-1 file-type "\t" file-type num-of-positive-students-external-2 file-type "\t" file-type num-vaccinated-susceptible file-type "\t" file-type num-vaccinated-exposed file-type "\t" file-type num-vaccinated-infected file-type "\t" file-type num-vaccinated-removed file-type "\t" file-type num-infected-outside file-type "\t" file-type classrooms-in-quarantine file-type "\t" file-type length classrooms-in-quarantine file-type "\t" file-print classroom-with-at-least-one-infected
 
       file-close
     ]
@@ -3897,11 +3296,7 @@ end
 
 ;Stop condition
 to-report stop-condition
-  let ft final-time
-  let final-hour first ft
-  let final-minute last ft
-
-  report day > days-of-simulation
+  report day = days-of-simulation and hour = 13 and minute = 40 and count turtles with [ not hidden? and cumulative-quanta-inhaled != 0 ] = 0 or day > days-of-simulation
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -3980,6 +3375,27 @@ students-per-classroom
 NIL
 HORIZONTAL
 
+PLOT
+387
+694
+590
+844
+SEIR
+t
+population
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Susceptible" 1.0 0 -15040220 true "" "plot num-susceptible"
+"Exposed" 1.0 0 -13345367 true "" "plot num-exposed"
+"Infected" 1.0 0 -2674135 true "" "plot num-infected"
+"Removed" 1.0 0 -16777216 true "" "plot num-removed"
+
 SLIDER
 9
 229
@@ -4019,7 +3435,7 @@ num-floors
 num-floors
 1
 3
-1.0
+3.0
 1
 1
 NIL
@@ -4071,10 +3487,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-896
-799
-1129
-832
+1230
+785
+1463
+818
 staggered-admissions?
 staggered-admissions?
 1
@@ -4202,7 +3618,7 @@ HORIZONTAL
 TEXTBOX
 11
 103
-92
+77
 121
 Setup world
 11
@@ -4220,10 +3636,10 @@ Setup probability
 1
 
 TEXTBOX
-855
-768
-890
-786
+1192
+793
+1227
+811
 Flags
 11
 0.0
@@ -4245,20 +3661,20 @@ NIL
 HORIZONTAL
 
 CHOOSER
-1376
-708
-1561
-753
+1710
+694
+1895
+739
 mask-type
 mask-type
 "no mask" "surgical" "ffp2"
 1
 
 CHOOSER
-1132
-708
-1373
-753
+1465
+694
+1706
+739
 ventilation-type-h-1
 ventilation-type-h-1
 "no ventilation" 0.3 1 3 5 10 20
@@ -4269,8 +3685,8 @@ SLIDER
 703
 270
 736
-prob-old-janitors
-prob-old-janitors
+prob-old-staff
+prob-old-staff
 0
 1
 0.59
@@ -4280,20 +3696,20 @@ NIL
 HORIZONTAL
 
 CHOOSER
-896
-708
-1129
-753
+1229
+693
+1462
+738
 temperature-measurement
 temperature-measurement
 "no measurement" "by hand" "termoscanner"
 0
 
 TEXTBOX
-785
-722
-894
-751
+1134
+707
+1231
+735
 Countermeasures
 11
 0.0
@@ -4330,15 +3746,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-342
-790
-545
-823
+387
+932
+590
+965
 run#
 run#
 1
 1000
-1.0
+7.0
 1
 1
 NIL
@@ -4360,10 +3776,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-1133
-800
-1372
-833
+1466
+786
+1705
+819
 spaced-desks?
 spaced-desks?
 0
@@ -4382,10 +3798,10 @@ second
 11
 
 SWITCH
-896
-836
-1129
-869
+1230
+822
+1463
+855
 interval-in-front-of-classroom?
 interval-in-front-of-classroom?
 0
@@ -4393,10 +3809,10 @@ interval-in-front-of-classroom?
 -1000
 
 SLIDER
-1568
-708
-1753
-741
+1710
+742
+1895
+775
 fraction-of-population-wearing-mask
 fraction-of-population-wearing-mask
 0
@@ -4408,10 +3824,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-342
-755
-545
-788
+387
+896
+590
+929
 days-of-simulation
 days-of-simulation
 1
@@ -4433,30 +3849,30 @@ init-infected-type
 1
 
 CHOOSER
-342
-706
-545
-751
+387
+848
+590
+893
 lesson-duration-in-minutes
 lesson-duration-in-minutes
 50 60
 0
 
 TEXTBOX
-288
-722
-343
-741
+291
+861
+388
+879
 Other parameters
 11
 0.0
 1
 
 SWITCH
-1378
-800
-1564
-833
+1711
+786
+1895
+819
 outside-contagion?
 outside-contagion?
 1
@@ -4464,15 +3880,15 @@ outside-contagion?
 -1000
 
 SLIDER
-896
-1043
-1034
-1076
+1230
+991
+1368
+1024
 screening-adhesion-%
 screening-adhesion-%
 0
 100
-100.0
+50.0
 1
 1
 NIL
@@ -4494,10 +3910,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-896
-872
-1129
-905
+1230
+858
+1463
+891
 vaccinated-teachers?
 vaccinated-teachers?
 0
@@ -4505,10 +3921,10 @@ vaccinated-teachers?
 -1000
 
 SWITCH
-1380
-838
-1564
-871
+1466
+858
+1706
+891
 vaccinated-principals?
 vaccinated-principals?
 0
@@ -4516,66 +3932,66 @@ vaccinated-principals?
 -1000
 
 SWITCH
-1379
-872
-1564
-905
-vaccinated-janitors?
-vaccinated-janitors?
+1712
+858
+1897
+891
+vaccinated-staff?
+vaccinated-staff?
 0
 1
 -1000
 
 SWITCH
-1133
-836
-1373
-869
+1466
+822
+1706
+855
 external-screening?
 external-screening?
-0
+1
 1
 -1000
 
 CHOOSER
-896
-948
-1372
-993
+1230
+895
+1706
+940
 screening-policy
 screening-policy
 "no screening" "all every week" "1/4 of the class every week, in rotation" "1/4 of the class every week, in rotation, spread over two days of the week"
-3
+2
 
 TEXTBOX
-829
-962
-897
-980
+1171
+910
+1239
+928
 Screening
 11
 0.0
 1
 
 CHOOSER
-896
-996
-1034
-1041
+1230
+943
+1368
+988
 first-day-of-week
 first-day-of-week
 "monday" "tuesday" "wednesday" "thursday" "friday"
-2
+3
 
 CHOOSER
-1039
-996
-1178
-1041
+1371
+943
+1510
+988
 second-day-of-week
 second-day-of-week
 "monday" "tuesday" "wednesday" "thursday" "friday"
-4
+3
 
 SLIDER
 7
@@ -4607,11 +4023,74 @@ prob-external-screening-2
 NIL
 HORIZONTAL
 
+PLOT
+594
+694
+794
+844
+SEIR quarantine
+t
+population
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Susceptible" 1.0 0 -15040220 true "" "plot count turtles with [susceptible? and quarantined?]"
+"Exposed" 1.0 0 -13345367 true "" "plot count turtles with [exposed? and quarantined?]"
+"Infected" 1.0 0 -5298144 true "" "plot count turtles with [infected? and quarantined?]"
+"Removed" 1.0 0 -16777216 true "" "plot count turtles with [removed? and quarantined?]"
+
+PLOT
+797
+694
+1025
+844
+SEIR quarantine ext 1
+t
+population
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Susceptible" 1.0 0 -15040220 true "" "plot count turtles with [susceptible? and quarantined? and quarantined-external-1?]"
+"Exposed" 1.0 0 -13345367 true "" "plot count turtles with [exposed? and quarantined? and quarantined-external-1?]"
+"Infected" 1.0 0 -5298144 true "" "plot count turtles with [infected? and quarantined? and quarantined-external-1?]"
+"Removed" 1.0 0 -16449023 true "" "plot count turtles with [removed? and quarantined? and quarantined-external-1?]"
+
+PLOT
+797
+847
+1025
+997
+SEIR quarantine ext 2
+t
+population
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Susceptible" 1.0 0 -15040220 true "" "plot count turtles with [susceptible? and quarantined? and quarantined-external-2?]"
+"Exposed" 1.0 0 -13345367 true "" "plot count turtles with [exposed? and quarantined? and quarantined-external-2?]"
+"Infected" 1.0 0 -5298144 true "" "plot count turtles with [infected? and quarantined? and quarantined-external-2?]"
+"Removed" 1.0 0 -16449023 true "" "plot count turtles with [removed? and quarantined? and quarantined-external-2?]"
+
 SLIDER
-342
-826
-545
-859
+387
+968
+590
+1001
 tick-duration-in-seconds
 tick-duration-in-seconds
 4
@@ -4623,10 +4102,10 @@ NIL
 HORIZONTAL
 
 INPUTBOX
-552
-706
-755
-789
+595
+1000
+796
+1060
 results-dir-name
 Results
 1
@@ -4634,10 +4113,10 @@ Results
 String
 
 SLIDER
-342
-863
-545
-896
+387
+1005
+590
+1038
 vaccine-efficacy
 vaccine-efficacy
 0
@@ -4648,289 +4127,63 @@ vaccine-efficacy
 NIL
 HORIZONTAL
 
-SLIDER
-896
-909
-1130
-942
-fraction-of-vaccinated-teachers
-fraction-of-vaccinated-teachers
-0
-1
-1.0
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-1380
-909
-1564
-942
-fraction-of-vaccinated-janitors
-fraction-of-vaccinated-janitors
-0
-1
-1.0
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-1135
-909
-1373
-942
-fraction-of-vaccinated-students
-fraction-of-vaccinated-students
-0
-1
-1.0
-0.01
-1
-NIL
-HORIZONTAL
-
-SWITCH
-1135
-873
-1373
-906
-vaccinated-students?
-vaccinated-students?
-1
-1
--1000
-
-SWITCH
-896
-760
-1128
-793
-whole-classroom-quarantined?
-whole-classroom-quarantined?
-1
-1
--1000
-
-SLIDER
-1134
-760
-1374
-793
-num-infected-needed-to-quarantine-whole-classroom
-num-infected-needed-to-quarantine-whole-classroom
-1
-10
-2.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-1379
-760
-1564
-793
-number-of-after-days-special-swab
-number-of-after-days-special-swab
-3
-10
-5.0
-1
-1
-NIL
-HORIZONTAL
+PLOT
+595
+848
+795
+998
+SEIR vaccinated
+t
+population
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Susceptible" 1.0 0 -15040220 true "" "plot count turtles with [susceptible? and vaccinated?]"
+"Exposed" 1.0 0 -13345367 true "" "plot count turtles with [exposed? and vaccinated?]"
+"Infected" 1.0 0 -5298144 true "" "plot count turtles with [infected? and vaccinated?]"
+"Removed" 1.0 0 -16710651 true "" "plot count turtles with [removed? and vaccinated?]"
 
 @#$#@#$#@
-## INTRODUCTION
-Many governments enforced physical distancing measures to control the spread of **COVID-19** to avoid the collapse of fragile and overloaded health care systems. Following the physical distancing measures, the closures of schools seemed unavoidable to control and reduce the transmission of the pathogen, given the potentially high-risk settings of these environments. Nevertheless, leaving the closure of schools as an extreme and last resource is a top priority of governments, therefore different non-pharmaceutical interventions in the school settings were implemented to reduce the risk of transmission. Through a detailed Agent-Based Model simulation experiment [1, 5], we study the efficacy of active surveillance strategies in the school environment. Simulations settings employed in the experiments provide hypothetical although realistic scenarios which allow us to identify the most suitable control strategy according to the viral circulation period to avoid massive school closures. The significance of risk reduction through the policies assessed in this work is relevant for public health authorities and school administrators.
-
 ## WHAT IS IT?
-This is an **Agent-Based Model (ABM)**, developed in the multi-agent programmable modeling environment **NetLogo version 6.1.1** [2], to study the spread of COVID-19 infections within an explanatory scholastic environment, and to evaluate in such an environment the effectiveness of non-pharmaceutical interventions (NPIs), such as distancing requirements, screening testing, and environment ventilation.
-The model components are:
 
-- The environment including both physical spaces and social contact structure of the population;
-- The COVID-19 progression model;
-- The NPIs’ logic modeled to contain the COVID-19 spread.
-
-The modeled environment is a school constituted of at most 12 classrooms (arranged on three floors), shared spaces (i.e. entrance, gym, hallways, bathrooms, stairs, medical room, teachers’ office, and principal’s office). In detail, each floor consists of one hallway that connects all the rooms and one bathroom only for the students. The school entrance, the medical room, the gym, the principal’s office, the teachers’ office and the teachers’ bathroom are on the first floor. Moreover, each classroom is characterized by twenty desks (rightly distanced from each other), one teacher desk, and the blackboard.
+(a general understanding of what the model is trying to show or explain)
 
 ## HOW IT WORKS
-There are four different types of agents: _students_, _teachers_, _principals_ and _janitors_.
-In particular:
 
-- _Students_ can go to their classroom, to the students' bathroom on the same floor of their classroom, to the principal's office, to the gym, to the hallways, etc.
-- _Teachers_ can go to the classrooms, to the teacher's room, to the teachers' bathroom on the ground floor, to the hallways, etc.
-- _Principals_ can go to the principal's office, to the teachers' bathroom on the ground floor, to the hallways etc.
-- _Janitors_ can go to the medical room, to the teachers' bathroom, to che hallways etc.
+(what rules the agents use to create the overall behavior of the model)
 
-There are two different contagion models:
+## HOW TO USE IT
 
-- _Aerosol_ [3]: accumulation of quanta concentration in the main places and of quanta inhaled for each agent. Type of ventilation used: 3 ACH (Air Changes per Hour)<sup>1</sup>. 
-- _Contact_ [4]: accumulation of the contact time among a susceptible agent and an infected one. We considered a contact area of 2.1 * 2.1 m<sup>2</sup>}.
+(how to use the model, including a description of each of the items in the Interface tab)
 
-<sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considere room.
+## THINGS TO NOTICE
 
-## HOW TO USE IT (on Linux)
-At first, you need to download [**NetLogo 6.1.1**](https://ccl.northwestern.edu/netlogo/6.1.1/).
+(suggested things for the user to notice while running the model)
 
-After that, to run a configuration you need to create a configuration file (with .conf extension) specifying the values to assign for each (or for some) parameters (described below). In the _ExampleOfConfigurationFile_ directory you can find some examples of configuration files. After that, you can run the configuration in this way (**it's necessary to specify the correct path to netlogo-headless.sh into the start.sh script, for example \~/NetLogo6.1.1/netlogo-headless.sh**):
-```
-./start.sh ConfigurationFileName NumberOfThreads
-```
-For example:
-```
-./start.sh ExampleOfConfigurationFile/Example1.conf 24
-```
+## THINGS TO TRY
 
-----
-
-There are lots of parameters in this model. Here I describe the parameters that you can modify in the _Interface Tab_:
-
-- _students-per-classroom_: number of students for each classroom.
-- _num-floors_: number of school's floors.
-- _num-classrooms-per-floor_: number of classrooms for each floor. The total number of classrooms is equal to _num-floors_ * _num-classrooms-per-floor_ (minimum 1, maximum 12).
-- _init-infected_: initial number of infected agents.
-- _init-infected-type_: the _init-infected_ will be of this type (_anyone_, _students_, _teachers_, _principals_ or _janitors_).
-- _num-groups_: number of groups in which the classrooms are divided (1 not staggered admissions, 2 staggered admissions).
-- _mean-incubation-duration-in-days_: average number of incubation days.
-- _mean-infection-duration-in-days_: average number of infection days.
-- _num-of-quarantine-days_: number of quarantine days.
-- _dad-%_: percentage of distance learning.
-- _prob-go-bathroom_: probability to go to the bathroom.
-- _prob-go-blackboard_: probability to go to the blackboard.
-- _prob-go-somewhere-during-interval_: probability to go somewhere during the interval.
-- _prob-go-principal_: probability to go to the principal's office.
-- _prob-old-teachers_: probability that a teacher belongs to the _old_ category.
-- _prob-old-janitor_: probability that a janitor belongs to the _old_ category.
-- _prob-outside-contagion-young_: probability that an agent that belongs to the _young_ category gets the infection outside the school.
-- _prob-outside-contagion-regular_: probability that an agent that belongs to the _regular_ category gets the infection outside the school.
-- _prob-outside-contagion-old_: probability that an agent that belongs to the _old_ category gets the infection outside the school.
-- _prob-external-screening-1_: probability to swab a student outside the school because this student follows activities that involve screening campaings.
-- _prob-external-screening-2_: probability to swab an infected students outside the school.
-- _lesson-duration-in-minutes_: duration of a single lesson in minutes.
-- _days-of-simulation_: number of simulation days for each execution of the simulator.
-- _run#_: unique identifier of the running execution.
-- _tick-duration-in-seconds_: NetLogo temporal tick.
-- _results-dir-name_: name of the results' directory.
-- _temperature-measurement_: temperature measurement type (at the entrance).
-- _ventilation-type-h-1_: ventilation type implemented in all rooms but not in the hallways.
-- _mask-type_: mask type used by agents.
-- _fraction-of-population-wearing-mask_: fraction of all agents that use the mask.
-- _whole-classroom-quarantined?_: we can use two diffentent _quarantine_ policies:
-	- First, if we find an infected student in a classroom, we put the whole classroom in quarantine.
-	- Second, if we find an infected student in a classroom, we put only this student in quarantine and we swab all the other students in the same classroom. If we find other _num-infected-needed-to-quarantine-whole-classroom_ - 1 infected students we put the whole classroom in quarantine, otherwise we'll swab again all the other students in the same classroom after _number-of-after-days-special-swab_ days. Again, if we find other _num-infected-needed-to-quarantine-whole-classroom_ - 1 infected we put the whole classroom in quarantine.
-- _num-infected-needed-to-quarantine-whole-classroom_: number of infected students needed to quarantine the whole classroom with the second _quarantine_ policy.
-- _number-of-after-days-special-swab_: number of days after that, with the second _quarantine_ policy, we swab again all the other students in the same classroom of the infected student that we found.
-- _staggered-admissions?_: staggered admissions (with _num-groups_ groups).
-- _spaced-desks?_: spaced desks (social distancing).
-- _outside-contagion?_: possibility to get the infection outside the school.
-- _interval-in-front-of-classroom?_: possibility to go at most in front of their classroom during the interval and not elsewhere (the agents can always go to the bathroom).
-- _external-screening?_: external screening (outside tha school).
-- _vaccinated-teachers?_: vaccinated teachers (immunized).
-- _vaccinated-principals?_: vaccinated principals (immunized).
-- _vaccinated-janitors?_: vaccinated janitors (immunized).
-- _fraction-of-vaccinated-students_: fraction of vaccinated students.
-- _fraction-of-vaccinated-teachers_: fraction of vaccinated teachers.
-- _fraction-of-vaccinated-janitors_: fraction of vaccinated janitors.
-- _vaccine-efficacy_: vaccine efficacy for vaccinated subjects.
-- _screening-policy_: infection control stategy (or screening policy); we consider four different screening policies:
-	- **A1**: all every week
-	- **D1**: 1/4 of the class every week, in rotation
-	- **D2**: 1/4 of the class every week, in rotation, spread over two days of the week
-	- **W0**: no screening
-- _first-day-of-week_: day of the week on which school's screening takes place; In the case of D2 policy, one half of the group is swabbed on this day.
-- _second-day-of-week_: parameter used in the case of the D2 policy; the other half of the group is swabbed on this day.
-- _screening-adhesion-%_: percentage of students' adhesion to the screening campaign.
-
-----
-
-Each run produce an output file and for each day we get the following information:
-
-- _day_
-- _seedRun_
-- _susceptible_
-- _exposed_
-- _infected_
-- _removed_
-- _susceptible-in-quarantine_
-- _exposed-in-quarantine_
-- _infected-in-quarantine_
-- _removed-in-quarantine_
-- _susceptible-in-quarantine-external-1_
-- _exposed-in-quarantine-external-1_
-- _infected-in-quarantine-external-1_
-- _removed-in-quarantine-external-1_
-- _susceptible-in-quarantine-external-2_
-- _exposed-in-quarantine-external-2_
-- _infected-in-quarantine-external-2_
-- _removed-in-quarantine-external-2_
-- _num-of-screened-students_
-- _num-of-screened-students-external-1_
-- _num-of-screened-students-external-2_
-- _num-of-positive-students_
-- _num-of-positive-students-external-1_
-- _num-of-positive-students-external-2_
-- _num-vaccinated-susceptible_
-- _num-vaccinated-exposed_
-- _num-vaccinated-infected_
-- _num-vaccinated-removed_
-- _num-vaccinated-susceptible-in-quarantine_
-- _num-vaccinated-exposed-in-quarantine_
-- _num-vaccinated-infected-in-quarantine_
-- _num-vaccinated-removed-in-quarantine_
-- _num-vaccinated-susceptible-in-quarantine-external-1_
-- _num-vaccinated-exposed-in-quarantine-external-1_
-- _num-vaccinated-infected-in-quarantine-external-1_
-- _num-vaccinated-removed-in-quarantine-external-1_
-- _num-vaccinated-susceptible-in-quarantine-external-2_
-- _num-vaccinated-exposed-in-quarantine-external-2_
-- _num-vaccinated-infected-in-quarantine-external-2_
-- _num-vaccinated-removed-in-quarantine-external-2_
-- _num-infected-outside_
-- _classroom-in-quarantine_
-- _num-of-classroom-in-quarantine_
-- _classroom-with-at-least-one-infected_
-
-## EXTERNAL INPUT
-The model needed some external input files inside a _Utils_ directory:
-
-- **Seed.txt**: this file contains the seed.
-- **ClassroomsScheduling.txt**: this file contains the teachers' scheduling on the five weekly days; each teacher has an associated identifier (it's important to not overlap the teachers between different classroom in the same hour). It's necessary to specify the scheduling for each interested classroom and for each day there must be six lessons.
-- **StaggeredClassroomsScheduling.txt**: this file contains the teachers' scheduling in the case of staggered admissions.
-- **GymTeachers.txt**: this file contains the identifier of the gym teachers.
+(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
 
 ## EXTENDING THE MODEL
-- Fix the measure-temperature function
-- Fix the create-supply-teacher function
-- Fix the create-supply-janitor function
-- Fix the copy-teacher function
-- Fix the copy-janitor function
-- Introduce some features such as:
-	- Possibility of reinfection
 
-## REFERENCES
-[1] Daniele Baccega. _SchoolSEIRModel_. _2021_. URL: https://gitlab.com/danielebaccega/schoolseirmodel.
+(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
 
-[2] Wilensky, U. _(1999)_. _NetLogo._ http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+## NETLOGO FEATURES
 
-[3] Savvas Gkantonas et al. _airborne.cam: a risk calculator of SARSCoV-2 aerosol transmission under well-mixed ventilation conditions_. _2021_. URL: https://airborne.cam.
+(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
 
-[4] Nicolas Hoertel et al. _«A stochastic agent-based model of the SARS-CoV-2 epidemic in France»_. In: _Nature medicine 26.9 (2020)_, pp. 1417–1421.
+## RELATED MODELS
 
-[5] PAPER JASS
+(models in the NetLogo Models Library and elsewhere which are of related interest)
 
-## COPYRIGHT AND LICENSE
+## CREDITS AND REFERENCES
 
-Copyright _Daniele Baccega, Simone Pernice, Pietro Terna, Paolo Castagno, Marco Beccuti, Matteo Sereno_
-
-![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
-
-This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 License.  To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
+(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
 @#$#@#$#@
 default
 true
@@ -5249,6 +4502,8 @@ NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default

@@ -71,16 +71,12 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _days-of-simulation_: number of simulation days for each execution of the simulator.
 - _run#_: unique identifier of the running execution.
 - _tick-duration-in-seconds_: NetLogo temporal tick.
+- _vaccine-efficacy_: vaccine efficacy for vaccinated subjects.
 - _results-dir-name_: name of the results' directory.
 - _temperature-measurement_: temperature measurement type (at the entrance).
 - _ventilation-type-h-1_: ventilation type implemented in all rooms but not in the hallways.
 - _mask-type_: mask type used by agents.
 - _fraction-of-population-wearing-mask_: fraction of all agents that use the mask.
-- _whole-classroom-quarantined?_: we can use two diffentent _quarantine_ policies:
-	- First, if we find an infected student in a classroom, we put the whole classroom in quarantine.
-	- Second, if we find an infected student in a classroom, we put only this student in quarantine and we swab all the other students in the same classroom. If we find other _num-infected-needed-to-quarantine-whole-classroom_ - 1 infected students we put the whole classroom in quarantine, otherwise we'll swab again all the other students in the same classroom after _number-of-after-days-special-swab_ days. Again, if we find other _num-infected-needed-to-quarantine-whole-classroom_ - 1 infected we put the whole classroom in quarantine.
-- _num-infected-needed-to-quarantine-whole-classroom_: number of infected students needed to quarantine the whole classroom with the second _quarantine_ policy.
-- _number-of-after-days-special-swab_: number of days after that, with the second _quarantine_ policy, we swab again all the other students in the same classroom of the infected student that we found.
 - _staggered-admissions?_: staggered admissions (with _num-groups_ groups).
 - _spaced-desks?_: spaced desks (social distancing).
 - _outside-contagion?_: possibility to get the infection outside the school.
@@ -89,10 +85,6 @@ There are lots of parameters in this model. Here I describe the parameters that 
 - _vaccinated-teachers?_: vaccinated teachers (immunized).
 - _vaccinated-principals?_: vaccinated principals (immunized).
 - _vaccinated-janitors?_: vaccinated janitors (immunized).
-- _fraction-of-vaccinated-students_: fraction of vaccinated students.
-- _fraction-of-vaccinated-teachers_: fraction of vaccinated teachers.
-- _fraction-of-vaccinated-janitors_: fraction of vaccinated janitors.
-- _vaccine-efficacy_: vaccine efficacy for vaccinated subjects.
 - _screening-policy_: infection control stategy (or screening policy); we consider four different screening policies:
 	- **A1**: all every week
 	- **D1**: 1/4 of the class every week, in rotation
@@ -168,7 +160,7 @@ The model needed some external input files inside a _Utils_ directory:
 
 [4] Nicolas Hoertel et al. _«A stochastic agent-based model of the SARS-CoV-2 epidemic in France»_. In: _Nature medicine 26.9 (2020)_, pp. 1417–1421.
 
-[5] PAPER JASS
+[5] Baccega Daniele, Pernice Simone, Terna Pietro, Castagno Paolo, Moirano Giovenale, Richiardi Lorenzo, Sereno Matteo, Rabellino Sergio, Maule Milena Maria and Beccuti Marco (2022) 'An Agent-Based Model to Support Infection Control Strategies at School' Journal of Artificial Societies and Social Simulation 25 (3) 2 http://jasss.soc.surrey.ac.uk/25/3/2.html. doi: 10.18564/jasss.4830
 
 ## COPYRIGHT AND LICENSE
 
