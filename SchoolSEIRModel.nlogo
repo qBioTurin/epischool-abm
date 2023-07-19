@@ -4502,8 +4502,6 @@ NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
-<experiments>
-</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
