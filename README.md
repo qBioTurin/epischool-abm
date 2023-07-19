@@ -1,7 +1,7 @@
 ## BRANCHES
 There are two branches beyond the **main** branch: **JASSS** and **CIBB**. In these two branches there are the models and all the configurations used to produce the results presented in the corresponding papers.
 
-## HOW TO REPRODUCE THE RESULTS
+## HOW TO RUN THE EXAMPLES
 To run the examples:
 ```
 ./run_examples.sh NumberOfThreads
