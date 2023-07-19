@@ -40,7 +40,7 @@ then
 fi
 
 # Generate the description of the experiment
-STR=$(gawk -f read_config.awk $CONF)
+STR=$(gawk -f /home/docker/netlogo/read_config.awk /home/docker/netlogo/$CONF)
 
 # Check wether to use the provided file name or to generate it
 if [ -z ${FNM+x} ]
