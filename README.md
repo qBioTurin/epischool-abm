@@ -31,20 +31,6 @@ There are two different contagion models:
 - _Aerosol_ [3]: accumulation of quanta concentration in the main places and of quanta inhaled for each agent. Type of ventilation used: 3 ACH (Air Changes per Hour)<sup>1</sup>. 
 - _Contact_ [4]: accumulation of the contact time among a susceptible agent and an infected one. We considered a contact area of 2.1 * 2.1 m<sup>2</sup>}.
 
-<sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considere room.
-
-## HOW TO USE IT (on Linux)
-At first, you need to download [**NetLogo 6.1.1**](https://ccl.northwestern.edu/netlogo/6.1.1/).
-
-After that, to run a configuration you need to create a configuration file (with .conf extension) specifying the values to assign for each (or for some) parameters (described below). In the _ExampleOfConfigurationFile_ directory you can find some examples of configuration files. After that, you can run the configuration in this way (**it's necessary to specify the correct path to netlogo-headless.sh into the start.sh script, for example \~/NetLogo6.1.1/netlogo-headless.sh**):
-```
-./start.sh ConfigurationFileName NumberOfThreads
-```
-For example:
-```
-./start.sh ExampleOfConfigurationFile/Example1.conf 24
-```
-
 ----
 
 There are lots of parameters in this model. Here I describe the parameters that you can modify in the _Interface Tab_:
@@ -148,6 +134,8 @@ Each run produce an output file and for each day we get the following informatio
 - _classroom-in-quarantine_
 - _num-of-classroom-in-quarantine_
 - _classroom-with-at-least-one-infected_
+
+<sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considere room.
 
 ## EXTERNAL INPUT
 The model needed some external input files inside a _Utils_ directory:
