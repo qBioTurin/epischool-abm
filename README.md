@@ -1,3 +1,21 @@
+## HOW TO REPRODUCE THE RESULTS
+To run the examples:
+```
+./run_examples.sh NumberOfThreads
+```
+
+## HOW TO USE IT (ON LINUX)
+At first, you need to download [**NetLogo 6.1.1**](https://ccl.northwestern.edu/netlogo/6.1.1/).
+
+After that, to run a configuration you need to create a configuration file (with .conf extension) specifying the values to assign for each (or for some) parameters (described below). In the _ExampleOfConfigurationFile_ directory you can find some examples of configuration files. After that, you can run the configuration in this way (**it's necessary to specify the correct path to netlogo-headless.sh into the start.sh script, for example \~/NetLogo6.1.1/netlogo-headless.sh**):
+```
+./start.sh ConfigurationFileName NumberOfThreads
+```
+For example:
+```
+./start.sh ExampleOfConfigurationFile/Example1.conf 16
+```
+
 ## INTRODUCTION
 Many governments enforced physical distancing measures to control the spread of **COVID-19** to avoid the collapse of fragile and overloaded health care systems. Following the physical distancing measures, the closures of schools seemed unavoidable to control and reduce the transmission of the pathogen, given the potentially high-risk settings of these environments. Nevertheless, leaving the closure of schools as an extreme and last resource is a top priority of governments, therefore different non-pharmaceutical interventions in the school settings were implemented to reduce the risk of transmission. Through a detailed Agent-Based Model simulation experiment [1, 5], we study the efficacy of active surveillance strategies in the school environment. Simulations settings employed in the experiments provide hypothetical although realistic scenarios which allow us to identify the most suitable control strategy according to the viral circulation period to avoid massive school closures. The significance of risk reduction through the policies assessed in this work is relevant for public health authorities and school administrators.
 
@@ -24,20 +42,6 @@ There are two different contagion models:
 
 - _Aerosol_ [3]: accumulation of quanta concentration in the main places and of quanta inhaled for each agent. Type of ventilation used: 3 ACH (Air Changes per Hour)<sup>1</sup>. 
 - _Contact_ [4]: accumulation of the contact time among a susceptible agent and an infected one. We considered a contact area of 2.1 * 2.1 m<sup>2</sup>}.
-
-<sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considere room.
-
-## HOW TO USE IT (on Linux)
-At first, you need to download [**NetLogo 6.1.1**](https://ccl.northwestern.edu/netlogo/6.1.1/).
-
-After that, to run a configuration you need to create a configuration file (with .conf extension) specifying the values to assign for each (or for some) parameters (described below). In the _ExampleOfConfigurationFile_ directory you can find some examples of configuration files. After that, you can run the configuration in this way (**it's necessary to specify the correct path to netlogo-headless.sh into the start.sh script, for example \~/NetLogo6.1.1/netlogo-headless.sh**):
-```
-./start.sh ConfigurationFileName NumberOfThreads
-```
-For example:
-```
-./start.sh ExampleOfConfigurationFile/Example1.conf 24
-```
 
 ----
 
@@ -145,6 +149,8 @@ Each run produce an output file and for each day we get the following informatio
 - _num-of-classroom-in-quarantine_
 - _classroom-with-at-least-one-infected_
 
+<sup>1</sup> Air Changes per Hour (ACH) means that in 1 hour 300.000 L (or analogous 300 m<sup>2</sup>) of external air are entered into the considere room.
+
 ## EXTERNAL INPUT
 The model needed some external input files inside a _Utils_ directory:
 
@@ -168,7 +174,7 @@ The model needed some external input files inside a _Utils_ directory:
 
 ## COPYRIGHT AND LICENSE
 
-Copyright _Daniele Baccega, Simone Pernice, Pietro Terna, Paolo Castagno, Marco Beccuti, Matteo Sereno_
+Copyright _Daniele Baccega, Simone Pernice, Paolo Castagno, Marco Beccuti, Matteo Sereno_
 
 ![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
 
