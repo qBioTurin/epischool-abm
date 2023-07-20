@@ -7,6 +7,23 @@ To run the examples:
 ./run_examples.sh NumberOfThreads
 ```
 
+## REQUIREMENTS
+You need to have docker installed on your machine, for more info see this document: https://docs.docker.com/engine/installation/.
+
+Ensure your user has the rights to run docker (without the use of sudo). To create the docker group and add your user:
+
+Create the docker group.
+```
+  $ sudo groupadd docker
+ ```
+ 
+Add your user to the docker group.
+```
+  $ sudo usermod -aG docker $USER
+```
+
+Log out and log back in so that your group membership is re-evaluated.
+
 ## HOW TO USE IT (ON LINUX)
 At first, you need to download [**NetLogo 6.1.1**](https://ccl.northwestern.edu/netlogo/6.1.1/).
 
