@@ -1,7 +1,5 @@
 #!/bin/bash
 
-docker pull danielebaccega/netlogo:611
-
 # Specify the number of threads to use
 NUM_THREAD=$1
 LOCAL_PATH="ExampleOfConfigurationFile"
