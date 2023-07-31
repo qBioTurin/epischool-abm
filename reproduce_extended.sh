@@ -2,6 +2,9 @@
 
 # Specify the number of threads to use
 NUM_THREAD=$1
+if [ -z "$1" ]; then
+    NUM_THREAD=8
+fi
 LOCAL_PATH="CIBBConfigurations/Extended"
 
 for c in "LowCirculation" "MediumCirculation" "HighCirculation"
