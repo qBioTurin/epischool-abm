@@ -1,9 +1,3 @@
-## HOW TO REPRODUCE THE RESULTS
-To reproduce the results of the paper run:
-```
-./reproduce.sh NumberOfThreads
-```
-
 ## REQUIREMENTS
 You need to have docker installed on your machine, for more info see this document: https://docs.docker.com/engine/installation/.
 
@@ -20,6 +14,12 @@ Add your user to the docker group.
 ```
 
 Log out and log back in so that your group membership is re-evaluated.
+
+## HOW TO REPRODUCE THE RESULTS
+To reproduce the results of the paper run:
+```
+./reproduce.sh NumberOfThreads
+```
 
 ## INTRODUCTION
 Many governments enforced physical distancing measures to control the spread of **COVID-19** to avoid the collapse of fragile and overloaded health care systems. Following the physical distancing measures, the closures of schools seemed unavoidable to control and reduce the transmission of the pathogen, given the potentially high-risk settings of these environments. Nevertheless, leaving the closure of schools as an extreme and last resource is a top priority of governments, therefore different non-pharmaceutical interventions in the school settings were implemented to reduce the risk of transmission. Through a detailed Agent-Based Model simulation experiment [1, 5], we study the efficacy of active surveillance strategies in the school environment. Simulations settings employed in the experiments provide hypothetical although realistic scenarios which allow us to identify the most suitable control strategy according to the viral circulation period to avoid massive school closures. The significance of risk reduction through the policies assessed in this work is relevant for public health authorities and school administrators.
