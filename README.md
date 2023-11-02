@@ -1,12 +1,6 @@
 ## BRANCHES
 There are two branches beyond the **main** branch: **JASSS** and **CIBB**. In these two branches there are the models and all the configurations used to produce the results presented in the corresponding papers.
 
-## HOW TO RUN THE EXAMPLES
-To run the examples:
-```
-./run_examples.sh NumberOfThreads
-```
-
 ## REQUIREMENTS
 You need to have docker installed on your machine, for more info see this document: https://docs.docker.com/engine/installation/.
 
@@ -23,6 +17,13 @@ Add your user to the docker group.
 ```
 
 Log out and log back in so that your group membership is re-evaluated.
+
+
+## HOW TO RUN THE EXAMPLES
+To run the examples:
+```
+./run_examples.sh NumberOfThreads
+```
 
 ## HOW TO USE IT (ON LINUX)
 At first, you need to download [**NetLogo 6.1.1**](https://ccl.northwestern.edu/netlogo/6.1.1/).
