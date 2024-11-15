@@ -4363,20 +4363,15 @@ prob-external-screening-2
 NIL
 HORIZONTAL
 
-SLIDER
+CHOOSER
 432
 825
-635
-858
+634
+870
 tick-duration-in-seconds
 tick-duration-in-seconds
-4
-60
-60.0
-4
-1
-NIL
-HORIZONTAL
+1 2 3 4 5 6 10 12 15 20 30 60
+10
 
 INPUTBOX
 642
